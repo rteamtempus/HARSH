@@ -1,0 +1,55 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "paths": {
+      "data-access": ["./projects/data-access/src/public-api.ts"],
+      "ui": ["./projects/ui/src/public-api.ts"]
+    },
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "preserve"
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./projects/portal/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/portal/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/display/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/display/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/data-access/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/data-access/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/ui/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/ui/tsconfig.spec.json"
+    }
+  ]
+}
