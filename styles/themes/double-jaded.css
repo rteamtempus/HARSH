@@ -1,0 +1,134 @@
+/* ============================================================
+   HARSH theme: "Double Jaded"
+   Based on the Hearth Family UI tokens by Double Jaded / Kylie Early.
+
+   To add another theme:
+   1. Copy this file to styles/themes/<name>.css
+   2. Replace each `:root` and `[data-theme-pack="double-jaded"]` selector
+      with `[data-theme-pack="<name>"]`
+   3. Register it in ui/themes.ts so the ThemeService can apply it
+   ============================================================ */
+
+:root,
+[data-theme-pack='double-jaded'] {
+  /* Raw palette */
+  --obo: #373d20;
+  --reseda: #717744;
+  --sage: #bcbd8b;
+  --white-smoke: #eff1ed;
+  --crave: #843d22;
+  --this-is-why: #cc8400;
+  --thick-skull: #e3cca1;
+
+  /* Surfaces (dark default) */
+  --bg-canvas: #1f2412;
+  --bg-surface: #2a3018;
+  --bg-raised: #373d20;
+  --bg-sunken: #161a0c;
+  --bg-overlay: rgba(31, 36, 18, 0.78);
+
+  /* Borders */
+  --line-subtle: rgba(188, 189, 139, 0.08);
+  --line-default: rgba(188, 189, 139, 0.16);
+  --line-strong: rgba(188, 189, 139, 0.32);
+
+  /* Text */
+  --text-primary: #ece2c9;
+  --text-secondary: #bcbd8b;
+  --text-tertiary: #8a9068;
+  --text-disabled: #5c6044;
+  --text-on-accent: #1a1410;
+
+  /* Accent / gold */
+  --accent: #b8501f;
+  --accent-hover: #cc5c26;
+  --accent-press: #9c421a;
+  --accent-soft: rgba(184, 80, 31, 0.16);
+  --accent-glow: rgba(204, 132, 0, 0.22);
+  --gold: #d89220;
+  --gold-soft: rgba(216, 146, 32, 0.14);
+
+  /* Semantic */
+  --success: #9ca665;
+  --warning: #d89220;
+  --danger: #c4452a;
+  --info: #bcbd8b;
+
+  /* Type scale (mobile baseline) */
+  --fs-display: clamp(2.5rem, 6vw, 4rem);
+  --fs-h1: 2rem;
+  --fs-h2: 1.5rem;
+  --fs-h3: 1.25rem;
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-micro: 0.75rem;
+
+  /* Spacing (4pt grid) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  /* Radii */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* Shadows (warm-tinted) */
+  --shadow-sm: 0 1px 2px rgba(8, 10, 6, 0.4);
+  --shadow-md: 0 4px 12px rgba(8, 10, 6, 0.45), 0 1px 2px rgba(8, 10, 6, 0.3);
+  --shadow-lg: 0 16px 40px rgba(8, 10, 6, 0.55), 0 2px 6px rgba(8, 10, 6, 0.35);
+  --shadow-glow: 0 0 24px var(--accent-glow);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 380ms;
+
+  /* Fonts (loaded via index.html <link>) */
+  --font-sans: 'Inter Tight', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ===== Light mode (within double-jaded pack) ===== */
+:root[data-theme='light'],
+[data-theme-pack='double-jaded'][data-theme='light'] {
+  --bg-canvas: #eff1ed;
+  --bg-surface: #e5e8df;
+  --bg-raised: #ffffff;
+  --bg-sunken: #f7f8f4;
+  --bg-overlay: rgba(239, 241, 237, 0.85);
+
+  --line-subtle: rgba(55, 61, 32, 0.08);
+  --line-default: rgba(55, 61, 32, 0.16);
+  --line-strong: rgba(55, 61, 32, 0.32);
+
+  --text-primary: #373d20;
+  --text-secondary: #717744;
+  --text-tertiary: #9ca065;
+  --text-disabled: #bcbd8b;
+  --text-on-accent: #ffffff;
+
+  --accent: #843d22;
+  --accent-hover: #973f1f;
+  --accent-press: #6e2f18;
+  --accent-soft: rgba(132, 61, 34, 0.1);
+  --accent-glow: rgba(132, 61, 34, 0.18);
+
+  --gold: #cc8400;
+  --gold-soft: rgba(204, 132, 0, 0.12);
+
+  --shadow-sm: 0 1px 2px rgba(55, 61, 32, 0.08);
+  --shadow-md: 0 4px 14px rgba(55, 61, 32, 0.1), 0 1px 2px rgba(55, 61, 32, 0.06);
+  --shadow-lg: 0 16px 40px rgba(55, 61, 32, 0.14);
+}

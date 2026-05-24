@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -29,7 +30,11 @@
                 "input": "projects/portal/public"
               }
             ],
-            "styles": ["projects/portal/src/styles.scss"]
+            "styles": [
+              "styles/themes/double-jaded.css",
+              "styles/base.css",
+              "projects/portal/src/styles.scss"
+            ]
           },
           "configurations": {
             "production": {
@@ -102,7 +107,11 @@
                 "input": "projects/display/public"
               }
             ],
-            "styles": ["projects/display/src/styles.scss"]
+            "styles": [
+              "styles/themes/double-jaded.css",
+              "styles/base.css",
+              "projects/display/src/styles.scss"
+            ]
           },
           "configurations": {
             "production": {

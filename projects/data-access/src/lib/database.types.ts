@@ -93,6 +93,66 @@ export type Database = {
           },
         ]
       }
+      calendar_accounts: {
+        Row: {
+          color: string
+          created_at: string
+          credentials_encrypted: string | null
+          family_id: string
+          ics_url: string | null
+          id: string
+          kind: Database["public"]["Enums"]["calendar_account_kind"]
+          last_sync_error: string | null
+          last_sync_status: string | null
+          last_synced_at: string | null
+          member_id: string | null
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          credentials_encrypted?: string | null
+          family_id: string
+          ics_url?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["calendar_account_kind"]
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          last_synced_at?: string | null
+          member_id?: string | null
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          credentials_encrypted?: string | null
+          family_id?: string
+          ics_url?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["calendar_account_kind"]
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          last_synced_at?: string | null
+          member_id?: string | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_accounts_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_accounts_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       display_config: {
         Row: {
           active_view: string
@@ -146,6 +206,7 @@ export type Database = {
           notes: string | null
           owner_member_id: string | null
           source: Database["public"]["Enums"]["event_source"]
+          source_account_id: string | null
           starts_at: string
           title: string
         }
@@ -160,6 +221,7 @@ export type Database = {
           notes?: string | null
           owner_member_id?: string | null
           source?: Database["public"]["Enums"]["event_source"]
+          source_account_id?: string | null
           starts_at: string
           title: string
         }
@@ -174,6 +236,7 @@ export type Database = {
           notes?: string | null
           owner_member_id?: string | null
           source?: Database["public"]["Enums"]["event_source"]
+          source_account_id?: string | null
           starts_at?: string
           title?: string
         }
@@ -192,6 +255,13 @@ export type Database = {
             referencedRelation: "family_members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "events_source_account_id_fkey"
+            columns: ["source_account_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_accounts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       families: {
@@ -200,18 +270,21 @@ export type Database = {
           id: string
           name: string
           settings: Json
+          time_zone: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
           settings?: Json
+          time_zone?: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
           settings?: Json
+          time_zone?: string
         }
         Relationships: []
       }
@@ -259,39 +332,113 @@ export type Database = {
           },
         ]
       }
+      household_facts: {
+        Row: {
+          category: string | null
+          created_at: string
+          family_id: string
+          id: string
+          key: string
+          last_updated: string
+          source: string | null
+          value: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          family_id: string
+          id?: string
+          key: string
+          last_updated?: string
+          source?: string | null
+          value: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          family_id?: string
+          id?: string
+          key?: string
+          last_updated?: string
+          source?: string | null
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_facts_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_items: {
         Row: {
           added_at: string
           added_by_member_id: string | null
+          assignee_member_id: string | null
+          assignee_profile_id: string | null
           checked: boolean
           checked_at: string | null
+          deadline: string | null
+          energy: Database["public"]["Enums"]["energy_level"] | null
+          estimated_effort: Database["public"]["Enums"]["effort_size"] | null
           family_id: string
+          how: string | null
           id: string
+          lead_time_minutes: number | null
           list_id: string
+          nag: Database["public"]["Enums"]["nag_level"]
+          notes: string | null
           sort_order: number
           text: string
+          when_hint: string | null
+          why: string | null
         }
         Insert: {
           added_at?: string
           added_by_member_id?: string | null
+          assignee_member_id?: string | null
+          assignee_profile_id?: string | null
           checked?: boolean
           checked_at?: string | null
+          deadline?: string | null
+          energy?: Database["public"]["Enums"]["energy_level"] | null
+          estimated_effort?: Database["public"]["Enums"]["effort_size"] | null
           family_id: string
+          how?: string | null
           id?: string
+          lead_time_minutes?: number | null
           list_id: string
+          nag?: Database["public"]["Enums"]["nag_level"]
+          notes?: string | null
           sort_order?: number
           text: string
+          when_hint?: string | null
+          why?: string | null
         }
         Update: {
           added_at?: string
           added_by_member_id?: string | null
+          assignee_member_id?: string | null
+          assignee_profile_id?: string | null
           checked?: boolean
           checked_at?: string | null
+          deadline?: string | null
+          energy?: Database["public"]["Enums"]["energy_level"] | null
+          estimated_effort?: Database["public"]["Enums"]["effort_size"] | null
           family_id?: string
+          how?: string | null
           id?: string
+          lead_time_minutes?: number | null
           list_id?: string
+          nag?: Database["public"]["Enums"]["nag_level"]
+          notes?: string | null
           sort_order?: number
           text?: string
+          when_hint?: string | null
+          why?: string | null
         }
         Relationships: [
           {
@@ -299,6 +446,20 @@ export type Database = {
             columns: ["added_by_member_id"]
             isOneToOne: false
             referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_assignee_member_id_fkey"
+            columns: ["assignee_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_assignee_profile_id_fkey"
+            columns: ["assignee_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -394,17 +555,362 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          attributes: Json
+          color: string
+          created_at: string
+          family_id: string
+          id: string
+          kind: Database["public"]["Enums"]["profile_kind"]
+          member_id: string | null
+          name: string
+        }
+        Insert: {
+          attributes?: Json
+          color?: string
+          created_at?: string
+          family_id: string
+          id?: string
+          kind?: Database["public"]["Enums"]["profile_kind"]
+          member_id?: string | null
+          name: string
+        }
+        Update: {
+          attributes?: Json
+          color?: string
+          created_at?: string
+          family_id?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["profile_kind"]
+          member_id?: string | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      releases: {
+        Row: {
+          created_at: string
+          id: string
+          notes: Json
+          released_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: Json
+          released_at?: string
+          version: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: Json
+          released_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      routine_history: {
+        Row: {
+          by_member_id: string | null
+          family_id: string
+          id: string
+          note: string | null
+          occurred_at: string
+          routine_id: string
+          snooze_until: string | null
+          status: Database["public"]["Enums"]["routine_history_status"]
+        }
+        Insert: {
+          by_member_id?: string | null
+          family_id: string
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          routine_id: string
+          snooze_until?: string | null
+          status: Database["public"]["Enums"]["routine_history_status"]
+        }
+        Update: {
+          by_member_id?: string | null
+          family_id?: string
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          routine_id?: string
+          snooze_until?: string | null
+          status?: Database["public"]["Enums"]["routine_history_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_history_by_member_id_fkey"
+            columns: ["by_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_history_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_history_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routines: {
+        Row: {
+          active: boolean
+          cadence_rrule: string | null
+          cadence_type: Database["public"]["Enums"]["routine_cadence_type"]
+          category: string | null
+          created_at: string
+          estimated_effort: Database["public"]["Enums"]["effort_size"] | null
+          fair_rotation: boolean
+          family_id: string
+          id: string
+          interval_days: number | null
+          lead_time_days: number | null
+          nag: Database["public"]["Enums"]["nag_level"]
+          name: string
+          next_due: string | null
+          notes: string | null
+          owner_member_id: string | null
+          owner_profile_id: string | null
+          pause_reason: string | null
+          pause_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          cadence_rrule?: string | null
+          cadence_type: Database["public"]["Enums"]["routine_cadence_type"]
+          category?: string | null
+          created_at?: string
+          estimated_effort?: Database["public"]["Enums"]["effort_size"] | null
+          fair_rotation?: boolean
+          family_id: string
+          id?: string
+          interval_days?: number | null
+          lead_time_days?: number | null
+          nag?: Database["public"]["Enums"]["nag_level"]
+          name: string
+          next_due?: string | null
+          notes?: string | null
+          owner_member_id?: string | null
+          owner_profile_id?: string | null
+          pause_reason?: string | null
+          pause_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          cadence_rrule?: string | null
+          cadence_type?: Database["public"]["Enums"]["routine_cadence_type"]
+          category?: string | null
+          created_at?: string
+          estimated_effort?: Database["public"]["Enums"]["effort_size"] | null
+          fair_rotation?: boolean
+          family_id?: string
+          id?: string
+          interval_days?: number | null
+          lead_time_days?: number | null
+          nag?: Database["public"]["Enums"]["nag_level"]
+          name?: string
+          next_due?: string | null
+          notes?: string | null
+          owner_member_id?: string | null
+          owner_profile_id?: string | null
+          pause_reason?: string | null
+          pause_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routines_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routines_owner_member_id_fkey"
+            columns: ["owner_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routines_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_release_acks: {
+        Row: {
+          last_popup_shown_on: string | null
+          last_version_seen: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_popup_shown_on?: string | null
+          last_version_seen?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_popup_shown_on?: string | null
+          last_version_seen?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_release_acks_last_version_seen_fkey"
+            columns: ["last_version_seen"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["version"]
+          },
+        ]
+      }
+      weekly_context_notes: {
+        Row: {
+          content: string
+          created_at: string
+          created_by_member_id: string | null
+          expires_at: string
+          family_id: string
+          id: string
+          influences: string[]
+          suppress_topics: string[]
+          type: Database["public"]["Enums"]["context_note_type"]
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by_member_id?: string | null
+          expires_at: string
+          family_id: string
+          id?: string
+          influences?: string[]
+          suppress_topics?: string[]
+          type?: Database["public"]["Enums"]["context_note_type"]
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by_member_id?: string | null
+          expires_at?: string
+          family_id?: string
+          id?: string
+          influences?: string[]
+          suppress_topics?: string[]
+          type?: Database["public"]["Enums"]["context_note_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_context_notes_created_by_member_id_fkey"
+            columns: ["created_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_context_notes_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      acknowledge_releases: { Args: { p_version: string }; Returns: undefined }
+      claim_invitations: { Args: never; Returns: number }
+      create_family:
+        | {
+            Args: {
+              family_name: string
+              members: Json
+              owner_display_name: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              family_name: string
+              members: Json
+              owner_display_name: string
+              time_zone?: string
+            }
+            Returns: string
+          }
       current_user_family_ids: { Args: never; Returns: string[] }
+      reap_expired_context_notes: { Args: never; Returns: number }
+      should_show_release_popup: { Args: never; Returns: boolean }
+      unread_releases: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          notes: Json
+          released_at: string
+          version: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "releases"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
-      event_source: "manual" | "gcal" | "voice"
+      calendar_account_kind: "ics" | "google" | "caldav"
+      context_note_type:
+        | "emotional"
+        | "situational"
+        | "privacy_restriction"
+        | "celebration"
+      effort_size: "xs" | "s" | "m" | "l"
+      energy_level: "low" | "medium" | "high"
+      event_source: "manual" | "gcal" | "icloud" | "ics" | "caldav" | "voice"
       family_member_role: "owner" | "adult" | "kid"
       list_kind: "grocery" | "todo" | "custom"
+      nag_level: "passive" | "surface" | "assertive"
+      profile_kind: "child" | "pet" | "dependent" | "other"
+      routine_cadence_type: "calendar" | "interval"
+      routine_history_status: "completed" | "skipped" | "snoozed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -535,9 +1041,22 @@ export const Constants = {
   },
   public: {
     Enums: {
-      event_source: ["manual", "gcal", "voice"],
+      calendar_account_kind: ["ics", "google", "caldav"],
+      context_note_type: [
+        "emotional",
+        "situational",
+        "privacy_restriction",
+        "celebration",
+      ],
+      effort_size: ["xs", "s", "m", "l"],
+      energy_level: ["low", "medium", "high"],
+      event_source: ["manual", "gcal", "icloud", "ics", "caldav", "voice"],
       family_member_role: ["owner", "adult", "kid"],
       list_kind: ["grocery", "todo", "custom"],
+      nag_level: ["passive", "surface", "assertive"],
+      profile_kind: ["child", "pet", "dependent", "other"],
+      routine_cadence_type: ["calendar", "interval"],
+      routine_history_status: ["completed", "skipped", "snoozed"],
     },
   },
 } as const

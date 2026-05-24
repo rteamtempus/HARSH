@@ -1,0 +1,87 @@
+/* Base resets + body typography. Pulls from whichever theme pack is active. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+html {
+  scroll-behavior: smooth;
+}
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100dvh;
+  transition: background var(--dur-slow) var(--ease-out),
+    color var(--dur-slow) var(--ease-out);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+h1 {
+  font-size: var(--fs-h1);
+}
+h2 {
+  font-size: var(--fs-h2);
+}
+h3 {
+  font-size: var(--fs-h3);
+}
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+input,
+textarea,
+select {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* Wall display modifier — larger type, bumped contrast. Applied to <html> by the Display app. */
+[data-mode='wall'] {
+  --fs-display: clamp(4rem, 8vw, 7rem);
+  --fs-h1: 3.5rem;
+  --fs-h2: 2.5rem;
+  --fs-h3: 1.75rem;
+  --fs-body: 1.25rem;
+  --fs-small: 1rem;
+  --fs-micro: 0.875rem;
+  --text-primary: #f2e9d2;
+  --text-secondary: #c8c99b;
+}
+
+/* Utility classes used in templates */
+.h-display {
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
+  font-variation-settings: 'opsz' 96;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  letter-spacing: -0.01em;
+}

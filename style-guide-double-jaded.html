@@ -1,0 +1,1217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hearth — Family UI Style Guide · Double Jaded</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     HEARTH — Family UI Tokens (Double Jaded edition)
+     Greens swapped from Kylie Early's "Double Jaded" palette:
+       White Smoke #EFF1ED, Obo Green #373D20,
+       Reseda #717744, Sage #BCBD8B
+     Warm accents retained from Rachel Maria Designs:
+       Crave #843D22, This Is Why #CC8400, Thick Skull #E3CCA1
+     ============================================================ */
+  :root {
+    /* Raw palette anchors */
+    --obo:         #373D20;   /* dark anchor (was Liar) */
+    --reseda:      #717744;   /* olive mid (was The News) */
+    --sage:        #BCBD8B;   /* light green (was Figure 8) */
+    --white-smoke: #EFF1ED;   /* neutral cream-white from Double Jaded */
+    --crave:       #843D22;
+    --this-is-why: #CC8400;
+    --thick-skull: #E3CCA1;
+
+    /* ===== Dark theme (default, used on both apps) ===== */
+    /* Surfaces — green-led, layered from deepest to lightest.
+       Built around Obo Green #373D20; canvas deeper so cards lift. */
+    --bg-canvas:    #1F2412;   /* room — deeper than Obo, lets cards lift */
+    --bg-surface:   #2A3018;   /* primary surface, just below Obo */
+    --bg-raised:    #373D20;   /* Obo Green proper — cards, tiles */
+    --bg-sunken:    #161A0C;   /* wells, input fields */
+    --bg-overlay:   rgba(31,36,18,0.78);
+
+    /* Borders & dividers — sage-tinted */
+    --line-subtle:  rgba(188,189,139,0.08);
+    --line-default: rgba(188,189,139,0.16);
+    --line-strong:  rgba(188,189,139,0.32);
+
+    /* Text — warm cream tints, never pure white */
+    --text-primary:   #ECE2C9;
+    --text-secondary: #BCBD8B;   /* Sage — natural fit for secondary text */
+    --text-tertiary:  #8A9068;
+    --text-disabled:  #5C6044;
+    --text-on-accent: #1A1410;
+
+    /* Accent — Crave/orange family, the spark */
+    --accent:         #B8501F;  /* slightly brighter than Crave for dark bg legibility */
+    --accent-hover:   #CC5C26;
+    --accent-press:   #9C421A;
+    --accent-soft:    rgba(184,80,31,0.16);
+    --accent-glow:    rgba(204,132,0,0.22);
+
+    /* Secondary accent — gold (This Is Why) for highlights, ratings, "live" */
+    --gold:           #D89220;
+    --gold-soft:      rgba(216,146,32,0.14);
+
+    /* Semantic */
+    --success: #9CA665;   /* sage-aligned, harmonizes with Reseda/Sage */
+    --warning: #D89220;   /* reuse gold */
+    --danger:  #C4452A;   /* warmer red, matches Crave family */
+    --info:    #BCBD8B;   /* Sage */
+
+    /* Type scale (mobile baseline) */
+    --fs-display: clamp(2.5rem, 6vw, 4rem);
+    --fs-h1: 2rem;
+    --fs-h2: 1.5rem;
+    --fs-h3: 1.25rem;
+    --fs-body: 1rem;
+    --fs-small: 0.875rem;
+    --fs-micro: 0.75rem;
+
+    /* Spacing — 4pt grid */
+    --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+    --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+
+    /* Radii */
+    --r-sm: 6px; --r-md: 10px; --r-lg: 16px; --r-xl: 24px; --r-pill: 999px;
+
+    /* Shadows — warm-tinted, never pure black */
+    --shadow-sm: 0 1px 2px rgba(8,10,6,0.4);
+    --shadow-md: 0 4px 12px rgba(8,10,6,0.45), 0 1px 2px rgba(8,10,6,0.3);
+    --shadow-lg: 0 16px 40px rgba(8,10,6,0.55), 0 2px 6px rgba(8,10,6,0.35);
+    --shadow-glow: 0 0 24px var(--accent-glow);
+
+    /* Motion */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --dur-fast: 140ms;
+    --dur-base: 220ms;
+    --dur-slow: 380ms;
+  }
+
+  /* ===== Light theme (daytime mobile, kitchen wall, etc) ===== */
+  [data-theme="light"] {
+    --bg-canvas:    #EFF1ED;   /* White Smoke */
+    --bg-surface:   #E5E8DF;
+    --bg-raised:    #FFFFFF;   /* cleanest tier, lifts off canvas */
+    --bg-sunken:    #F7F8F4;
+    --bg-overlay:   rgba(239,241,237,0.85);
+
+    --line-subtle:  rgba(55,61,32,0.08);
+    --line-default: rgba(55,61,32,0.16);
+    --line-strong:  rgba(55,61,32,0.32);
+
+    --text-primary:   #373D20;   /* Obo Green as primary text */
+    --text-secondary: #717744;   /* Reseda */
+    --text-tertiary:  #9CA065;
+    --text-disabled:  #BCBD8B;   /* Sage */
+    --text-on-accent: #FFFFFF;
+
+    --accent:         #843D22;   /* Crave at full strength on light */
+    --accent-hover:   #973F1F;
+    --accent-press:   #6E2F18;
+    --accent-soft:    rgba(132,61,34,0.10);
+    --accent-glow:    rgba(132,61,34,0.18);
+
+    --gold:           #CC8400;
+    --gold-soft:      rgba(204,132,0,0.12);
+
+    --shadow-sm: 0 1px 2px rgba(55,61,32,0.08);
+    --shadow-md: 0 4px 14px rgba(55,61,32,0.10), 0 1px 2px rgba(55,61,32,0.06);
+    --shadow-lg: 0 16px 40px rgba(55,61,32,0.14);
+  }
+
+  /* ===== Wall display modifier — larger type, higher contrast, glanceable ===== */
+  [data-mode="wall"] {
+    --fs-display: clamp(4rem, 8vw, 7rem);
+    --fs-h1: 3.5rem;
+    --fs-h2: 2.5rem;
+    --fs-h3: 1.75rem;
+    --fs-body: 1.25rem;
+    --fs-small: 1rem;
+    --fs-micro: 0.875rem;
+
+    /* Bump text contrast a hair — viewed from distance */
+    --text-primary:   #F2E9D2;
+    --text-secondary: #C8C99B;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    background: var(--bg-canvas);
+    color: var(--text-primary);
+    font-size: var(--fs-body);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    transition: background var(--dur-slow) var(--ease-out), color var(--dur-slow) var(--ease-out);
+  }
+
+  /* Subtle film-grain texture across the whole guide — softens the dark */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.9   0 0 0 0 0.85   0 0 0 0 0.7   0 0 0 0.03 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 1;
+    mix-blend-mode: overlay;
+  }
+
+  .display-serif {
+    font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+    font-variation-settings: 'opsz' 96;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  .mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.85em;
+    letter-spacing: -0.01em;
+  }
+
+  /* ===== Layout ===== */
+  .wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--s-7) var(--s-5);
+    position: relative;
+    z-index: 2;
+  }
+
+  header.hero {
+    padding: var(--s-9) 0 var(--s-7);
+    border-bottom: 1px solid var(--line-default);
+    position: relative;
+  }
+  header.hero::after {
+    content: '';
+    position: absolute;
+    left: 0; bottom: -1px;
+    width: 80px; height: 2px;
+    background: var(--accent);
+  }
+  .eyebrow {
+    font-size: var(--fs-micro);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: var(--s-4);
+  }
+  .hero h1 {
+    font-size: var(--fs-display);
+    font-weight: 300;
+    margin-bottom: var(--s-5);
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+  .hero p.lede {
+    font-size: 1.15rem;
+    max-width: 60ch;
+    color: var(--text-secondary);
+  }
+
+  section.block {
+    padding: var(--s-9) 0 var(--s-7);
+    border-bottom: 1px solid var(--line-subtle);
+  }
+  section.block:last-of-type { border-bottom: none; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-4);
+    margin-bottom: var(--s-7);
+    flex-wrap: wrap;
+  }
+  .section-head h2 {
+    font-family: 'Fraunces', serif;
+    font-size: var(--fs-h1);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+  .section-head .num {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-size: 0.85rem;
+  }
+  .section-head .tag {
+    margin-left: auto;
+    font-size: var(--fs-micro);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  /* ===== Theme switcher ===== */
+  .controls {
+    position: sticky;
+    top: var(--s-4);
+    z-index: 10;
+    display: flex;
+    gap: var(--s-2);
+    justify-content: flex-end;
+    margin-bottom: var(--s-5);
+  }
+  .switch {
+    display: inline-flex;
+    background: var(--bg-raised);
+    border: 1px solid var(--line-default);
+    border-radius: var(--r-pill);
+    padding: 4px;
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(8px);
+  }
+  .switch button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: var(--fs-micro);
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all var(--dur-fast) var(--ease-out);
+  }
+  .switch button[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--text-on-accent);
+  }
+  .switch button:hover:not([aria-pressed="true"]) {
+    color: var(--text-primary);
+  }
+
+  /* ===== Color swatches ===== */
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--s-4);
+  }
+  .swatch {
+    border-radius: var(--r-md);
+    overflow: hidden;
+    border: 1px solid var(--line-default);
+    background: var(--bg-raised);
+    transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+    cursor: pointer;
+  }
+  .swatch:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .swatch .chip {
+    height: 110px;
+    position: relative;
+  }
+  .swatch .chip::after {
+    content: attr(data-name);
+    position: absolute;
+    bottom: 10px; left: 12px;
+    font-family: 'Fraunces', serif;
+    font-size: 0.95rem;
+    color: var(--text-on-chip, rgba(255,255,255,0.92));
+    letter-spacing: 0.02em;
+  }
+  .swatch .meta {
+    padding: var(--s-3) var(--s-4);
+    border-top: 1px solid var(--line-subtle);
+    font-size: var(--fs-micro);
+  }
+  .swatch .meta .label {
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+  }
+  .swatch .meta .hex {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+  }
+
+  /* ===== Type specimens ===== */
+  .type-stack > * + * { margin-top: var(--s-5); }
+  .type-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: var(--s-5);
+    align-items: baseline;
+    padding-bottom: var(--s-4);
+    border-bottom: 1px solid var(--line-subtle);
+  }
+  .type-row .spec {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: var(--fs-micro);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .type-row .sample-display {
+    font-family: 'Fraunces', serif;
+    font-size: 3rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .type-row .sample-h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 2.25rem;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+  .type-row .sample-h2 {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .type-row .sample-h3 {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+  .type-row .sample-body { font-size: 1rem; }
+  .type-row .sample-small { font-size: 0.875rem; color: var(--text-secondary); }
+  .type-row .sample-micro {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+  }
+
+  /* ===== Component playground ===== */
+  .components-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--s-5);
+  }
+  .card {
+    background: var(--bg-raised);
+    border: 1px solid var(--line-default);
+    border-radius: var(--r-lg);
+    padding: var(--s-5);
+    box-shadow: var(--shadow-sm);
+  }
+  .card-label {
+    font-size: var(--fs-micro);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+    margin-bottom: var(--s-4);
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 10px 18px;
+    border-radius: var(--r-md);
+    font-family: inherit;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all var(--dur-fast) var(--ease-out);
+    letter-spacing: 0.01em;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--text-on-accent);
+  }
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active { background: var(--accent-press); transform: translateY(0); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-primary);
+    border-color: var(--line-strong);
+  }
+  .btn-secondary:hover { background: var(--bg-surface); border-color: var(--accent); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover { color: var(--accent); background: var(--accent-soft); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border-color: rgba(196,69,42,0.4);
+  }
+  .btn-danger:hover { background: rgba(196,69,42,0.12); }
+
+  .btn-group { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+
+  /* Form */
+  .field { margin-bottom: var(--s-4); }
+  .field label {
+    display: block;
+    font-size: var(--fs-micro);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: var(--s-2);
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line-default);
+    border-radius: var(--r-md);
+    padding: 10px 12px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: var(--fs-body);
+    transition: border var(--dur-fast), box-shadow var(--dur-fast);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-micro);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .badge-accent { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-soft); }
+  .badge-gold { background: var(--gold-soft); color: var(--gold); }
+  .badge-success { background: rgba(138,154,91,0.14); color: var(--success); }
+  .badge-danger { background: rgba(196,69,42,0.14); color: var(--danger); }
+  .badge-neutral { background: var(--bg-sunken); color: var(--text-secondary); border: 1px solid var(--line-default); }
+  .badge .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+  }
+
+  /* ===== App preview frames ===== */
+  .previews {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: var(--s-6);
+    align-items: start;
+  }
+  @media (max-width: 800px) {
+    .previews { grid-template-columns: 1fr; }
+  }
+
+  /* Mobile mock */
+  .phone {
+    width: 280px;
+    height: 580px;
+    background: var(--bg-canvas);
+    border: 8px solid #0c0e09;
+    border-radius: 38px;
+    box-shadow: var(--shadow-lg), inset 0 0 0 1px var(--line-subtle);
+    overflow: hidden;
+    position: relative;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 50%; transform: translateX(-50%);
+    width: 90px; height: 22px;
+    background: #0c0e09;
+    border-radius: 0 0 14px 14px;
+    z-index: 3;
+  }
+  .phone-screen {
+    height: 100%;
+    overflow-y: auto;
+    padding: 38px var(--s-4) var(--s-5);
+  }
+  .phone-statusbar {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: var(--s-4);
+    padding: 0 var(--s-2);
+  }
+  .phone h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    margin-bottom: 2px;
+  }
+  .phone .subtitle {
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
+    margin-bottom: var(--s-4);
+  }
+  .phone .tile {
+    background: var(--bg-raised);
+    border: 1px solid var(--line-default);
+    border-radius: var(--r-md);
+    padding: var(--s-3);
+    margin-bottom: var(--s-2);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+  }
+  .phone .tile .icon-circle {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: grid; place-items: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .phone .tile .text { flex: 1; min-width: 0; }
+  .phone .tile .text strong { display: block; font-weight: 500; font-size: 0.88rem; }
+  .phone .tile .text span { font-size: 0.72rem; color: var(--text-tertiary); }
+  .phone .tile .meta { font-size: 0.7rem; color: var(--text-tertiary); }
+
+  .phone-tabs {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-overlay);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--line-default);
+    padding: var(--s-2) 0 var(--s-4);
+    display: flex;
+    justify-content: space-around;
+  }
+  .phone-tabs .tab {
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: center;
+    padding: 4px 8px;
+  }
+  .phone-tabs .tab.active { color: var(--accent); }
+  .phone-tabs .tab .dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin: 0 auto 2px;
+    opacity: 0;
+  }
+  .phone-tabs .tab.active .dot { opacity: 1; }
+
+  /* Wall display mock */
+  .wall {
+    background: var(--bg-canvas);
+    border: 1px solid var(--line-default);
+    border-radius: var(--r-lg);
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "top   top"
+      "main  side"
+      "bot   bot";
+  }
+  .wall .wall-top {
+    grid-area: top;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: var(--s-4) var(--s-5);
+    border-bottom: 1px solid var(--line-subtle);
+  }
+  .wall .wall-top .greet {
+    font-family: 'Fraunces', serif;
+    font-size: 1.6rem;
+    font-weight: 300;
+  }
+  .wall .wall-top .greet em { color: var(--accent); font-style: italic; }
+  .wall .wall-top .time {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+  .wall .wall-main {
+    grid-area: main;
+    padding: var(--s-5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--s-3);
+  }
+  .wall .wall-main .label-up {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+  }
+  .wall .wall-main .headline {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.6rem, 3.5vw, 2.8rem);
+    font-weight: 300;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+  .wall .wall-main .meta {
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
+    display: flex; gap: var(--s-3); flex-wrap: wrap;
+  }
+  .wall .wall-side {
+    grid-area: side;
+    background: var(--bg-surface);
+    border-left: 1px solid var(--line-subtle);
+    padding: var(--s-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    overflow: hidden;
+  }
+  .wall .wall-side .side-head {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    margin-bottom: var(--s-1);
+  }
+  .wall .wall-side .row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.78rem;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--line-subtle);
+  }
+  .wall .wall-side .row:last-child { border-bottom: none; }
+  .wall .wall-side .row .who { color: var(--text-secondary); }
+  .wall .wall-side .row .what { color: var(--text-primary); }
+  .wall .wall-bot {
+    grid-area: bot;
+    border-top: 1px solid var(--line-subtle);
+    padding: var(--s-3) var(--s-5);
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--bg-sunken);
+  }
+  .wall .wall-bot .nav {
+    display: flex; gap: var(--s-4);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+  }
+  .wall .wall-bot .nav .on { color: var(--accent); position: relative; }
+  .wall .wall-bot .nav .on::before {
+    content: ''; position: absolute;
+    bottom: -8px; left: 0; right: 0;
+    height: 2px; background: var(--accent);
+  }
+  .wall .wall-bot .weather {
+    font-family: 'Fraunces', serif;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+  }
+  .wall .wall-bot .weather strong { color: var(--text-primary); font-weight: 400; }
+
+  /* ===== Guidance callouts ===== */
+  .pull {
+    border-left: 2px solid var(--accent);
+    padding: var(--s-3) 0 var(--s-3) var(--s-4);
+    margin: var(--s-5) 0;
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-style: italic;
+    color: var(--text-secondary);
+    max-width: 60ch;
+    line-height: 1.4;
+  }
+
+  .principles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--s-5);
+  }
+  .principle {
+    padding: var(--s-4) 0;
+    border-top: 1px solid var(--line-default);
+  }
+  .principle .n {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-size: 0.75rem;
+    margin-bottom: var(--s-2);
+  }
+  .principle h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 400;
+    margin-bottom: var(--s-2);
+  }
+  .principle p { color: var(--text-secondary); font-size: 0.92rem; }
+
+  /* ===== Spacing scale visual ===== */
+  .spacing-grid {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: var(--s-3) var(--s-4);
+    align-items: center;
+  }
+  .spacing-grid .label { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-secondary); }
+  .spacing-grid .bar {
+    height: 8px;
+    background: var(--accent);
+    border-radius: var(--r-sm);
+    opacity: 0.85;
+  }
+
+  /* Token table */
+  table.tokens {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  table.tokens th, table.tokens td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line-subtle);
+  }
+  table.tokens th {
+    font-size: var(--fs-micro);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+  table.tokens td.tok { font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+  table.tokens td.val { font-family: 'JetBrains Mono', monospace; color: var(--text-secondary); }
+
+  /* Footer */
+  footer {
+    padding: var(--s-7) 0 var(--s-9);
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: var(--fs-micro);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-top: 1px solid var(--line-subtle);
+    margin-top: var(--s-7);
+  }
+  footer .mark {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--accent);
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.9rem;
+  }
+
+  /* utility */
+  .row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-4); }
+  @media (max-width: 700px) { .row-3 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="wrap">
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <div class="eyebrow">Family UI System · v0.2 · Double Jaded</div>
+    <h1 class="display-serif">A quiet system,<br/>with a <em>warm spark</em>.</h1>
+    <p class="lede">A shared visual language for the mobile companion app and the living-room wall display. Built from the verdant greens of the "Double Jaded" palette — Obo, Reseda, and Sage carrying the surfaces — with burnt orange reserved for the moment of focus.</p>
+  </header>
+
+  <!-- ============ CONTROLS ============ -->
+  <div class="controls">
+    <div class="switch" role="group" aria-label="Theme">
+      <button data-set-theme="dark" aria-pressed="true">Dark</button>
+      <button data-set-theme="light" aria-pressed="false">Light</button>
+    </div>
+  </div>
+
+  <!-- ============ 01 PRINCIPLES ============ -->
+  <section class="block">
+    <div class="section-head">
+      <span class="num">01 —</span>
+      <h2>Principles</h2>
+      <span class="tag">How decisions get made</span>
+    </div>
+
+    <p class="pull">"Surfaces recede. Type carries. Orange is the moment you look up."</p>
+
+    <div class="principles">
+      <div class="principle">
+        <div class="n">i.</div>
+        <h4>Green recedes, orange decides</h4>
+        <p>Surfaces are deep green-charcoal — they hold the room. Burnt orange is reserved for one thing per screen: the action, the alert, the answer.</p>
+      </div>
+      <div class="principle">
+        <div class="n">ii.</div>
+        <h4>Warmth, never cold white</h4>
+        <p>Text is cream, never #FFFFFF. Shadows are warm-tinted, not pure black. The system should feel like lamplight, not a hospital.</p>
+      </div>
+      <div class="principle">
+        <div class="n">iii.</div>
+        <h4>Two scales, one voice</h4>
+        <p>The wall display uses the same colors and components as the phone — just larger type, fewer elements per screen, longer dwell times. Don't redesign; rescale.</p>
+      </div>
+      <div class="principle">
+        <div class="n">iv.</div>
+        <h4>Glanceable beats clever</h4>
+        <p>The wall is seen from across the couch. If a number, name, or status can't be read at 8 feet, it's wrong.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 PALETTE ============ -->
+  <section class="block">
+    <div class="section-head">
+      <span class="num">02 —</span>
+      <h2>Palette</h2>
+      <span class="tag">Source swatches → semantic tokens</span>
+    </div>
+
+    <h3 style="font-family:'Fraunces',serif;font-weight:400;font-size:1.1rem;margin-bottom:var(--s-4);color:var(--text-secondary)">Source colors</h3>
+    <div class="palette-grid" style="margin-bottom:var(--s-7)">
+      <div class="swatch">
+        <div class="chip" style="background:#373D20" data-name="Obo Green"></div>
+        <div class="meta"><div class="label">Anchor · Dark Green</div><div class="hex">#373D20</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#717744" data-name="Reseda"></div>
+        <div class="meta"><div class="label">Olive Mid</div><div class="hex">#717744</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#BCBD8B" data-name="Sage" style="--text-on-chip:#3a3022"></div>
+        <div class="meta"><div class="label">Light Sage</div><div class="hex">#BCBD8B</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#EFF1ED" data-name="White Smoke" style="--text-on-chip:#373D20"></div>
+        <div class="meta"><div class="label">Light Base</div><div class="hex">#EFF1ED</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#843D22" data-name="Crave"></div>
+        <div class="meta"><div class="label">Accent · Burnt Orange</div><div class="hex">#843D22</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#CC8400" data-name="This Is Why"></div>
+        <div class="meta"><div class="label">Highlight · Gold</div><div class="hex">#CC8400</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:#E3CCA1" data-name="Thick Skull" style="--text-on-chip:#3a3022"></div>
+        <div class="meta"><div class="label">Warm Cream</div><div class="hex">#E3CCA1</div></div>
+      </div>
+    </div>
+
+    <h3 style="font-family:'Fraunces',serif;font-weight:400;font-size:1.1rem;margin-bottom:var(--s-4);color:var(--text-secondary)">Semantic tokens (dark mode)</h3>
+    <table class="tokens">
+      <thead>
+        <tr><th>Token</th><th>Role</th><th>Value</th><th>Where it lives</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="tok">--bg-canvas</td><td>Room background</td><td class="val">#1F2412</td><td>Outermost surface, behind everything</td></tr>
+        <tr><td class="tok">--bg-surface</td><td>Primary surface</td><td class="val">#2A3018</td><td>Page sections, navigation chrome</td></tr>
+        <tr><td class="tok">--bg-raised</td><td>Cards, tiles</td><td class="val">#373D20</td><td>Obo Green — anything that lifts off the page</td></tr>
+        <tr><td class="tok">--bg-sunken</td><td>Wells, inputs</td><td class="val">#161A0C</td><td>Form fields, code blocks, recessed</td></tr>
+        <tr><td class="tok">--accent</td><td>Primary action</td><td class="val">#B8501F</td><td>Buttons, focus rings, active state</td></tr>
+        <tr><td class="tok">--gold</td><td>Highlight</td><td class="val">#D89220</td><td>Notifications, ratings, "live" dots</td></tr>
+        <tr><td class="tok">--text-primary</td><td>Body text</td><td class="val">#ECE2C9</td><td>Default reading color (warm cream)</td></tr>
+        <tr><td class="tok">--text-secondary</td><td>Supporting text</td><td class="val">#BCBD8B</td><td>Sage — captions, labels, metadata</td></tr>
+        <tr><td class="tok">--text-tertiary</td><td>Quiet text</td><td class="val">#8A9068</td><td>Timestamps, helper text, hints</td></tr>
+        <tr><td class="tok">--success</td><td>Status — good</td><td class="val">#9CA665</td><td>Sage-aligned, harmonizes with palette</td></tr>
+        <tr><td class="tok">--danger</td><td>Status — alert</td><td class="val">#C4452A</td><td>Errors, destructive actions</td></tr>
+      </tbody>
+    </table>
+
+    <p style="margin-top:var(--s-4);color:var(--text-tertiary);font-size:0.88rem;">
+      Why <span class="mono">#B8501F</span> for the accent instead of Crave (<span class="mono">#843D22</span>)? Against the more saturated Obo Green surfaces, the source Crave can read a touch dim. The shifted hue keeps the family but earns its contrast. Crave returns at full strength in light mode, where the White Smoke canvas gives it all the headroom it needs.
+    </p>
+  </section>
+
+  <!-- ============ 03 TYPOGRAPHY ============ -->
+  <section class="block">
+    <div class="section-head">
+      <span class="num">03 —</span>
+      <h2>Typography</h2>
+      <span class="tag">Fraunces (display) · Inter Tight (UI)</span>
+    </div>
+
+    <p style="max-width:60ch;color:var(--text-secondary);margin-bottom:var(--s-6)">
+      A warm, slightly literary serif (Fraunces) for display and headings — it dresses the room. A neutral, modern sans (Inter Tight) for UI surfaces — it stays out of the way. Monospaced numerics (JetBrains Mono) for time, counts, and data so digits don't shift.
+    </p>
+
+    <div class="type-stack">
+      <div class="type-row">
+        <div class="spec">Display<br/>Fraunces 300</div>
+        <div class="sample-display">Tonight at home</div>
+      </div>
+      <div class="type-row">
+        <div class="spec">H1<br/>Fraunces 400</div>
+        <div class="sample-h1">Grocery list, week of May 24</div>
+      </div>
+      <div class="type-row">
+        <div class="spec">H2<br/>Inter Tight 600</div>
+        <div class="sample-h2">Tomorrow's schedule</div>
+      </div>
+      <div class="type-row">
+        <div class="spec">H3<br/>Inter Tight 500</div>
+        <div class="sample-h3">Reminders due today</div>
+      </div>
+      <div class="type-row">
+        <div class="spec">Body<br/>Inter Tight 400</div>
+        <div class="sample-body">Pick up dry cleaning before 5pm. The truck is in the shop until Thursday so plan rides accordingly — Mom can cover the morning run.</div>
+      </div>
+      <div class="type-row">
+        <div class="spec">Small<br/>Inter Tight 400</div>
+        <div class="sample-small">Updated 3 minutes ago by Rory</div>
+      </div>
+      <div class="type-row">
+        <div class="spec">Micro<br/>Inter Tight 500</div>
+        <div class="sample-micro">Section · Eyebrow · Label</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 04 COMPONENTS ============ -->
+  <section class="block">
+    <div class="section-head">
+      <span class="num">04 —</span>
+      <h2>Components</h2>
+      <span class="tag">Buttons, inputs, badges, cards</span>
+    </div>
+
+    <div class="components-grid">
+
+      <div class="card">
+        <div class="card-label">Buttons</div>
+        <div class="btn-group">
+          <button class="btn btn-primary">Add to list</button>
+          <button class="btn btn-secondary">Cancel</button>
+        </div>
+        <div class="btn-group" style="margin-top:var(--s-3)">
+          <button class="btn btn-ghost">Skip</button>
+          <button class="btn btn-danger">Delete</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Form field</div>
+        <div class="field">
+          <label for="ex1">Item name</label>
+          <input id="ex1" type="text" placeholder="e.g. Oat milk" value="Sourdough">
+        </div>
+        <div class="field">
+          <label for="ex2">Aisle</label>
+          <select id="ex2">
+            <option>Bakery</option><option>Produce</option><option>Dairy</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Badges</div>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--s-2)">
+          <span class="badge badge-accent"><span class="dot"></span>Live</span>
+          <span class="badge badge-gold">Featured</span>
+          <span class="badge badge-success">Done</span>
+          <span class="badge badge-danger">Overdue</span>
+          <span class="badge badge-neutral">Draft</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">List tile</div>
+        <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-2) 0;border-bottom:1px solid var(--line-subtle)">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:600">R</div>
+          <div style="flex:1">
+            <div style="font-weight:500">Rory's pickup</div>
+            <div style="font-size:0.8rem;color:var(--text-tertiary)">4:15 PM · School</div>
+          </div>
+          <span class="badge badge-accent">Today</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 0">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--gold-soft);color:var(--gold);display:grid;place-items:center;font-weight:600">A</div>
+          <div style="flex:1">
+            <div style="font-weight:500">Anniversary dinner</div>
+            <div style="font-size:0.8rem;color:var(--text-tertiary)">Fri · 7:00 PM</div>
+          </div>
+          <span class="badge badge-neutral">Fri</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 05 PREVIEWS ============ -->
+  <section class="block">
+    <div class="section-head">
+      <span class="num">05 —</span>
+      <h2>In context</h2>
+      <span class="tag">Same system · two scales</span>
+    </div>
+
+    <div class="previews">
+
+      <!-- Mobile -->
+      <div data-mode="mobile">
+        <div style="font-size:var(--fs-micro);text-transform:uppercase;letter-spacing:0.1em;color:var(--text-tertiary);margin-bottom:var(--s-3)">Mobile · 280pt</div>
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="phone-statusbar"><span>9:41</span><span>•••</span></div>
+            <h2>Good evening</h2>
+            <div class="subtitle">3 things to wrap up today</div>
+
+            <div class="tile">
+              <div class="icon-circle">●</div>
+              <div class="text"><strong>Trash to curb</strong><span>Pickup tomorrow 7am</span></div>
+              <div class="meta">15m</div>
+            </div>
+            <div class="tile">
+              <div class="icon-circle" style="background:var(--gold-soft);color:var(--gold)">★</div>
+              <div class="text"><strong>Movie night</strong><span>Pick something with Mom</span></div>
+              <div class="meta">8:00p</div>
+            </div>
+            <div class="tile">
+              <div class="icon-circle" style="background:rgba(138,154,91,0.16);color:var(--success)">✓</div>
+              <div class="text"><strong>Laundry done</strong><span>Dryer finished 6:14p</span></div>
+              <div class="meta">—</div>
+            </div>
+
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:var(--s-4)">Add to list</button>
+          </div>
+          <div class="phone-tabs">
+            <div class="tab active"><div class="dot"></div>Home</div>
+            <div class="tab">List</div>
+            <div class="tab">Calendar</div>
+            <div class="tab">Notes</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wall -->
+      <div data-mode="wall">
+        <div style="font-size:var(--fs-micro);text-transform:uppercase;letter-spacing:0.1em;color:var(--text-tertiary);margin-bottom:var(--s-3)">Wall display · viewed at 8 feet</div>
+        <div class="wall">
+          <div class="wall-top">
+            <div class="greet">Evening, <em>family</em></div>
+            <div class="time">6:14 PM</div>
+          </div>
+          <div class="wall-main">
+            <div class="label-up">Up next</div>
+            <div class="headline">Movie night at eight.<br/>Mom's pick this week.</div>
+            <div class="meta"><span>● Living room</span><span>1h 45m</span><span>Snacks in pantry</span></div>
+          </div>
+          <div class="wall-side">
+            <div class="side-head">On the list</div>
+            <div class="row"><span class="who">Rory</span><span class="what">Sourdough starter</span></div>
+            <div class="row"><span class="who">Mom</span><span class="what">Pick up Rx</span></div>
+            <div class="row"><span class="who">—</span><span class="what">Library books due</span></div>
+            <div class="row"><span class="who">Rory</span><span class="what">Call electrician</span></div>
+          </div>
+          <div class="wall-bot">
+            <div class="nav">
+              <span class="on">Home</span><span>Calendar</span><span>List</span><span>Recipes</span><span>Notes</span>
+            </div>
+            <div class="weather"><strong>62°</strong> · clear tonight</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <p style="margin-top:var(--s-5);color:var(--text-tertiary);font-size:0.88rem;max-width:65ch;">
+      Notice: same tokens, same accent, same Fraunces headlines. The wall just gets bigger type, fewer simultaneous elements, and a horizontal layout that respects the 16:9 mounted format. The phone gets a bottom tab bar and denser tiles for thumb-reach.
+    </p>
+  </section>
+
+  <!-- ============ 06 SPACING ============ -->
+  <section class="block">
+    <div class="section-head">
+      <span class="num">06 —</span>
+      <h2>Spacing &amp; rhythm</h2>
+      <span class="tag">4pt grid</span>
+    </div>
+    <div class="spacing-grid">
+      <div class="label">--s-1 · 4px</div>  <div><div class="bar" style="width:4px"></div></div>
+      <div class="label">--s-2 · 8px</div>  <div><div class="bar" style="width:8px"></div></div>
+      <div class="label">--s-3 · 12px</div> <div><div class="bar" style="width:12px"></div></div>
+      <div class="label">--s-4 · 16px</div> <div><div class="bar" style="width:16px"></div></div>
+      <div class="label">--s-5 · 24px</div> <div><div class="bar" style="width:24px"></div></div>
+      <div class="label">--s-6 · 32px</div> <div><div class="bar" style="width:32px"></div></div>
+      <div class="label">--s-7 · 48px</div> <div><div class="bar" style="width:48px"></div></div>
+      <div class="label">--s-8 · 64px</div> <div><div class="bar" style="width:64px"></div></div>
+      <div class="label">--s-9 · 96px</div> <div><div class="bar" style="width:96px"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ 07 LIGHT MODE NOTE ============ -->
+  <section class="block">
+    <div class="section-head">
+      <span class="num">07 —</span>
+      <h2>Light mode</h2>
+      <span class="tag">For daylight, kitchen, or accessibility</span>
+    </div>
+    <p style="max-width:62ch;color:var(--text-secondary);margin-bottom:var(--s-4)">
+      Toggle the theme switch at the top of this page to see it. Light mode swaps the canvas to White Smoke (<span class="mono">#EFF1ED</span>), returns Crave to its full strength as the accent, and uses Obo Green as primary text with Reseda for secondary. Same components, same spacing — only the palette inverts.
+    </p>
+    <p style="max-width:62ch;color:var(--text-tertiary);font-size:0.88rem;">
+      Suggestion: leave the wall locked to dark (it lives next to a TV, brightness uniformity matters). Let the mobile app honor the OS-level <span class="mono">prefers-color-scheme</span> so it shifts naturally with daytime/evening use.
+    </p>
+  </section>
+
+  <!-- ============ 08 CODE TOKENS ============ -->
+  <section class="block">
+    <div class="section-head">
+      <span class="num">08 —</span>
+      <h2>Implementation</h2>
+      <span class="tag">Copy-paste tokens</span>
+    </div>
+    <p style="max-width:60ch;color:var(--text-secondary);margin-bottom:var(--s-4)">
+      Every token in this guide is a CSS custom property. Drop the <span class="mono">:root</span> and <span class="mono">[data-theme="light"]</span> blocks from this file's <span class="mono">&lt;style&gt;</span> tag into your Angular app's global stylesheet (or your SCSS partial). The <span class="mono">[data-mode="wall"]</span> modifier handles the rescale for the mounted display — same component code, just toggle the attribute at the app root.
+    </p>
+    <p style="max-width:60ch;color:var(--text-tertiary);font-size:0.88rem;">
+      Fonts load from Google Fonts via the <span class="mono">&lt;link&gt;</span> in the head — for production, self-host Fraunces and Inter Tight to control performance and avoid the FOUT.
+    </p>
+  </section>
+
+  <footer>
+    <div class="mark">Hearth</div>
+    <div style="margin-top:8px">Family UI · Style Guide v0.2 · Double Jaded</div>
+  </footer>
+
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('[data-set-theme]');
+  buttons.forEach(b => {
+    b.addEventListener('click', () => {
+      const theme = b.dataset.setTheme;
+      document.body.dataset.theme = theme;
+      buttons.forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    });
+  });
+</script>
+
+</body>
+</html>
