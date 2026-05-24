@@ -24,6 +24,30 @@
     </div>
   </section>
 
+  <!-- Quiet hours -->
+  <section>
+    <h2>Quiet hours</h2>
+    <p class="hint">
+      During quiet hours, the assistant suppresses surface and passive items —
+      only assertive (urgent) items break through. Default: 9 pm – 7 am.
+    </p>
+    <div class="row">
+      <span class="dot" [style.background]="'#6b8e9e'"></span>
+      <div class="meta">
+        <strong>Window</strong>
+        <span class="sub">{{ quietStart() }} – {{ quietEnd() }}</span>
+      </div>
+      <div class="qh-inputs">
+        <input type="time" [(ngModel)]="quietStartDraft" name="qhStart" />
+        <span>to</span>
+        <input type="time" [(ngModel)]="quietEndDraft" name="qhEnd" />
+        <button type="button" class="ghost" (click)="saveQuietHours()" [disabled]="qhBusy()">
+          @if (qhBusy()) { Saving… } @else { Save }
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- Voice -->
   <section>
     <h2>Voice</h2>

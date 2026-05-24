@@ -912,7 +912,117 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      list_items_with_act_by: {
+        Row: {
+          act_by: string | null
+          added_at: string | null
+          added_by_member_id: string | null
+          assignee_member_id: string | null
+          assignee_profile_id: string | null
+          checked: boolean | null
+          checked_at: string | null
+          deadline: string | null
+          effective_nag: Database["public"]["Enums"]["nag_level"] | null
+          energy: Database["public"]["Enums"]["energy_level"] | null
+          estimated_effort: Database["public"]["Enums"]["effort_size"] | null
+          family_id: string | null
+          how: string | null
+          id: string | null
+          lead_time_minutes: number | null
+          list_id: string | null
+          nag: Database["public"]["Enums"]["nag_level"] | null
+          notes: string | null
+          sort_order: number | null
+          text: string | null
+          when_hint: string | null
+          why: string | null
+        }
+        Insert: {
+          act_by?: never
+          added_at?: string | null
+          added_by_member_id?: string | null
+          assignee_member_id?: string | null
+          assignee_profile_id?: string | null
+          checked?: boolean | null
+          checked_at?: string | null
+          deadline?: string | null
+          effective_nag?: never
+          energy?: Database["public"]["Enums"]["energy_level"] | null
+          estimated_effort?: Database["public"]["Enums"]["effort_size"] | null
+          family_id?: string | null
+          how?: string | null
+          id?: string | null
+          lead_time_minutes?: number | null
+          list_id?: string | null
+          nag?: Database["public"]["Enums"]["nag_level"] | null
+          notes?: string | null
+          sort_order?: number | null
+          text?: string | null
+          when_hint?: string | null
+          why?: string | null
+        }
+        Update: {
+          act_by?: never
+          added_at?: string | null
+          added_by_member_id?: string | null
+          assignee_member_id?: string | null
+          assignee_profile_id?: string | null
+          checked?: boolean | null
+          checked_at?: string | null
+          deadline?: string | null
+          effective_nag?: never
+          energy?: Database["public"]["Enums"]["energy_level"] | null
+          estimated_effort?: Database["public"]["Enums"]["effort_size"] | null
+          family_id?: string | null
+          how?: string | null
+          id?: string | null
+          lead_time_minutes?: number | null
+          list_id?: string | null
+          nag?: Database["public"]["Enums"]["nag_level"] | null
+          notes?: string | null
+          sort_order?: number | null
+          text?: string | null
+          when_hint?: string | null
+          why?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_items_added_by_member_id_fkey"
+            columns: ["added_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_assignee_member_id_fkey"
+            columns: ["assignee_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_assignee_profile_id_fkey"
+            columns: ["assignee_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       acknowledge_releases: { Args: { p_version: string }; Returns: undefined }
@@ -936,6 +1046,14 @@ export type Database = {
             Returns: string
           }
       current_user_family_ids: { Args: never; Returns: string[] }
+      effective_nag: {
+        Args: {
+          p_configured: Database["public"]["Enums"]["nag_level"]
+          p_deadline: string
+          p_lead_time_minutes: number
+        }
+        Returns: Database["public"]["Enums"]["nag_level"]
+      }
       reap_expired_context_notes: { Args: never; Returns: number }
       routine_advance_next_due: {
         Args: {

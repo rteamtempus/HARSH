@@ -53,7 +53,13 @@ export class ListService {
     listId: string,
     text: string,
     familyId: string,
-    addedByMemberId?: string | null
+    addedByMemberId?: string | null,
+    extra?: {
+      deadline?: string | null;
+      lead_time_minutes?: number | null;
+      nag?: 'passive' | 'surface' | 'assertive';
+      notes?: string | null;
+    },
   ): Promise<void> {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -62,8 +68,39 @@ export class ListService {
       family_id: familyId,
       text: trimmed,
       added_by_member_id: addedByMemberId ?? null,
+      deadline: extra?.deadline ?? null,
+      lead_time_minutes: extra?.lead_time_minutes ?? null,
+      nag: extra?.nag ?? 'surface',
+      notes: extra?.notes ?? null,
     });
     if (error) throw error;
+  }
+
+  async updateItem(id: string, patch: Partial<ListItemRow>): Promise<void> {
+    const { error } = await this.supabase.from('list_items').update(patch).eq('id', id);
+    if (error) throw error;
+  }
+
+  /**
+   * Items with a deadline whose act_by window is open — used by briefings and
+   * the "needs attention" surfacing. Queries the deadline-aware view (PG view
+   * with effective_nag + act_by columns; see migration 20260524050000).
+   */
+  async loadDeadlineWatch(familyId: string, withinHours = 72): Promise<Array<ListItemRow & {
+    act_by: string | null;
+    effective_nag: 'passive' | 'surface' | 'assertive';
+  }>> {
+    const horizon = new Date(Date.now() + withinHours * 3600 * 1000).toISOString();
+    const { data, error } = await this.supabase
+      .from('list_items_with_act_by' as any)
+      .select('*')
+      .eq('family_id', familyId)
+      .eq('checked', false)
+      .not('deadline', 'is', null)
+      .lte('deadline', horizon)
+      .order('deadline', { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as any;
   }
 
   async toggleItem(item: ListItemRow): Promise<void> {

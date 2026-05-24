@@ -155,7 +155,7 @@ Optional fields per list item, so partners can communicate preferences without m
 
 **Implementation note:** Keep all fields optional. Default to a one-line item; expand on tap.
 
-### 4.2 Deadline-Aware Tasks (not "scheduled to-dos")
+### 4.2 Deadline-Aware Tasks (not "scheduled to-dos")  *[v1 landed: schema + act_by view + effective_nag function + quiet-hours-aware briefing surfacing; per-item editor UI still text-only]*
 For tasks like "cancel appointment, requires 24hr notice." Different from calendar events because the *deadline* matters, not the *doing time*.
 
 - Task has `hard_deadline` and `lead_time_required`

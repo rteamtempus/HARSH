@@ -71,6 +71,13 @@ export class SettingsComponent implements OnInit {
   readonly tzBusy = signal(false);
   readonly currentTz = () => this.family.family()?.time_zone ?? this.detectedTz;
 
+  // Quiet hours — backed by families.settings.quiet_hours.
+  readonly qhBusy = signal(false);
+  quietStartDraft = '21:00';
+  quietEndDraft = '07:00';
+  quietStart = () => this.family.quietHours().start;
+  quietEnd = () => this.family.quietHours().end;
+
   private readonly tts = inject<TtsAdapter>(TTS_ADAPTER);
   readonly voices = signal<Array<{ id: string; label: string; description?: string; locale: string }>>([]);
   readonly voiceBusy = signal(false);
@@ -87,11 +94,22 @@ export class SettingsComponent implements OnInit {
     const fam = this.family.family() ?? (await this.family.loadCurrent());
     if (!fam) { await this.router.navigateByUrl('/setup'); return; }
     await this.calendars.loadAccounts(fam.id);
+    const qh = this.family.quietHours();
+    this.quietStartDraft = qh.start;
+    this.quietEndDraft = qh.end;
     try {
       this.voices.set(await this.tts.listVoices());
     } catch {
       // Voice list is best-effort — picker just falls back to id strings if it fails.
     }
+  }
+
+  async saveQuietHours(): Promise<void> {
+    this.qhBusy.set(true);
+    try {
+      await this.family.updateQuietHours(this.quietStartDraft, this.quietEndDraft);
+    } catch (e) { console.error(e); }
+    finally { this.qhBusy.set(false); }
   }
 
   async setVoice(ev: Event): Promise<void> {

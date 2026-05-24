@@ -75,6 +75,13 @@ const BRIEFING_SCHEMA = {
 
 const SYSTEM_PROMPT = `You write a household briefing for a family — calm, warm, conversational with restraint. Like reading a sticky note from someone who knows the household.
 
+Surfacing rules (FEATURES.md §7.1):
+- deadline_tasks come with an "effective_nag" of passive / surface / assertive.
+  - assertive: belongs in "needs_attention" with clear language.
+  - surface: belongs in "needs_attention" or "heads_up" depending on how soon act_by is.
+  - passive: only mention in "heads_up" or skip entirely.
+- During quiet hours (current time inside quiet_hours window in family's tz), suppress passive and surface items; only assertive items should be in any section. The briefing as a whole still renders during quiet hours — it just stays calmer and shorter.
+
 Tone rules (non-negotiable):
 - No exclamation points.
 - No "Have a great day!" filler.
@@ -140,7 +147,7 @@ Deno.serve(async (req: Request) => {
   const monthlyHorizon = new Date(now.getTime() + 35 * 24 * 3600 * 1000).toISOString();
   const horizon = type === 'monthly' ? monthlyHorizon : type === 'weekly' ? weeklyHorizon : dailyHorizon;
 
-  const [familyRes, eventsRes, routinesRes, factsRes, notesRes] = await Promise.all([
+  const [familyRes, eventsRes, routinesRes, factsRes, notesRes, deadlinesRes] = await Promise.all([
     userClient.from('families').select('*').eq('id', body.family_id).single(),
     userClient.from('events').select('*').eq('family_id', body.family_id)
       .gte('starts_at', horizonStart).lte('starts_at', horizon)
@@ -149,6 +156,10 @@ Deno.serve(async (req: Request) => {
     userClient.from('household_facts').select('*').eq('family_id', body.family_id).limit(50),
     userClient.from('weekly_context_notes').select('*').eq('family_id', body.family_id)
       .gt('expires_at', tzNow),
+    // Deadline-aware items via the view that exposes effective_nag + act_by.
+    userClient.from('list_items_with_act_by').select('*').eq('family_id', body.family_id)
+      .eq('checked', false).not('deadline', 'is', null).lte('deadline', horizon)
+      .order('deadline', { ascending: true }),
   ]);
 
   if (familyRes.error) return json({ error: `family_read:${familyRes.error.message}` }, 500);
@@ -159,6 +170,12 @@ Deno.serve(async (req: Request) => {
   const routines = routinesRes.data ?? [];
   const facts = factsRes.data ?? [];
   const notes = notesRes.data ?? [];
+  const deadlines = deadlinesRes.data ?? [];
+
+  // Quiet hours: when active, briefing should de-emphasize non-assertive items.
+  const qh = (family.settings?.quiet_hours ?? {}) as { start?: string; end?: string };
+  const quietStart = qh.start ?? '21:00';
+  const quietEnd = qh.end ?? '07:00';
 
   // Distill notes into tone hints and suppression list.
   const suppressionTopics = notes
@@ -188,6 +205,7 @@ Deno.serve(async (req: Request) => {
     today_local: todayLocal,
     timezone: tz,
     family_name: family.name,
+    quiet_hours: { start: quietStart, end: quietEnd },
     events: events.map((e: any) => ({
       title: e.title, starts_at: e.starts_at, ends_at: e.ends_at,
       all_day: e.all_day, location: e.location,
@@ -197,6 +215,16 @@ Deno.serve(async (req: Request) => {
       next_due: r.next_due, cadence: r.cadence_type === 'interval'
         ? `every ${r.interval_days} days`
         : r.cadence_rrule,
+    })),
+    // Deadline tasks with auto-escalated nag levels — feed straight in so the
+    // model can decide which section to put them in based on effective_nag.
+    deadline_tasks: deadlines.map((d: any) => ({
+      text: d.text,
+      deadline: d.deadline,
+      act_by: d.act_by,
+      lead_time_minutes: d.lead_time_minutes,
+      effective_nag: d.effective_nag,
+      notes: d.notes,
     })),
     household_facts: facts.map((f: any) => ({ key: f.key, value: f.value, category: f.category })),
     tone_hints: toneHints,

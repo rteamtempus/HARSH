@@ -72,6 +72,47 @@ export class FamilyService {
     this.family.set(data);
   }
 
+  /**
+   * Quiet hours (FEATURES.md §7.1): household-level, default 21:00-07:00.
+   * Stored in families.settings.quiet_hours = { start: 'HH:MM', end: 'HH:MM' }.
+   * Times are interpreted in the family's IANA time zone.
+   */
+  quietHours(): { start: string; end: string } {
+    const settings = (this.family()?.settings ?? {}) as Record<string, unknown>;
+    const qh = settings['quiet_hours'] as { start?: string; end?: string } | undefined;
+    return { start: qh?.start ?? '21:00', end: qh?.end ?? '07:00' };
+  }
+
+  async updateQuietHours(start: string, end: string): Promise<void> {
+    const fam = this.family();
+    if (!fam) throw new Error('No family loaded');
+    const current = (fam.settings ?? {}) as Record<string, unknown>;
+    const nextSettings = { ...current, quiet_hours: { start, end } };
+    const { data, error } = await this.supabase
+      .from('families')
+      .update({ settings: nextSettings })
+      .eq('id', fam.id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    this.family.set(data);
+  }
+
+  /**
+   * True when current wall-clock time (in the family's tz) is inside the quiet
+   * hours window. Handles wraparound (21:00 → 07:00 spans midnight). Used by
+   * the display + briefing renderer to suppress non-assertive surfacing.
+   */
+  isInQuietHours(now: Date = new Date()): boolean {
+    const { start, end } = this.quietHours();
+    const tz = this.timeZone();
+    const local = new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz,
+    }).format(now);
+    if (start <= end) return local >= start && local < end;
+    return local >= start || local < end;
+  }
+
   /** Update the family's IANA time zone. */
   async updateTimeZone(timeZone: string): Promise<void> {
     const fam = this.family();

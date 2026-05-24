@@ -111,9 +111,12 @@ These shipped in the initial scaffold (commit `143841e`):
 
 ## Phase 3 — Deadline awareness
 
-- [ ] Hard-deadline + lead-time tasks computing `act_by`
-- [ ] Auto-escalation by deadline math (`passive` → `surface` → `assertive` as `act_by` approaches)
-- [ ] Quiet hours enforcement (household-level, default 9pm-7am)
+- [x] Hard-deadline + lead-time tasks computing `act_by` — [20260524050000_deadline_escalation.sql](supabase/migrations/20260524050000_deadline_escalation.sql) (`effective_nag()` SQL function + `list_items_with_act_by` view with RLS inheritance)
+- [x] Auto-escalation by deadline math (`passive` → `surface` → `assertive` as `act_by` approaches; past-deadline → assertive)
+- [x] Quiet hours enforcement (household-level, default 9pm-7am) — [FamilyService](projects/data-access/src/lib/family.service.ts) `quietHours()` + `isInQuietHours()`; briefing generator suppresses non-assertive items during the window
+- [x] Quiet hours editor in [Settings](projects/portal/src/app/settings/settings.component.ts)
+- [x] Deadline tasks flow into briefing prompt with `effective_nag`
+- [~] List-item UI for editing deadline + lead_time + nag — adder is still text-only; expand-on-tap editor pending (brain dump already accepts deadlines)
 - [ ] Weather API integration (provider TBD — defer per FEATURES.md §8)
 
 ## Phase 4 — Meeting scribe

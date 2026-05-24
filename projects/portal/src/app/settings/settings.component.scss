@@ -45,3 +45,6 @@ input[type=color] { width:2rem; height:1.6rem; padding:0; border:0; background:t
 .hint-block summary { cursor:pointer; }
 .hint-block ul { margin:var(--s-2) 0 0 var(--s-5); padding:0; display:flex; flex-direction:column; gap:var(--s-2); }
 code { font-family:var(--font-mono); background:var(--bg-sunken); padding:0 var(--s-1); border-radius:var(--r-sm); }
+
+.qh-inputs { display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap; }
+.qh-inputs input[type=time] { padding:var(--s-1) var(--s-2); border-radius:var(--r-md); border:1px solid var(--line-default); background:var(--bg-sunken); color:var(--text-primary); font-family:inherit; }
