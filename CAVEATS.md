@@ -51,6 +51,9 @@ Option 2 is simpler and avoids new pg extensions; flagged for whenever a routine
 ### Fair rotation column exists; logic doesn't (2026-05-24)
 `routines.fair_rotation` is a boolean column wired through the schema. The briefing surfacing ("Rory's done it 4 weeks in a row") isn't implemented because briefings themselves aren't built yet (Phase 2). When briefings land, fair-rotation surfacing is one of the first weekly-briefing features to add.
 
+### Routines UI uses native `prompt()` for "pause until" (2026-05-24)
+Pause picks a target date via browser `prompt()` — works but ugly. Replace with a real datepicker + reason textarea modal when polishing. Same applies to the delete confirm — fine for now, replace later.
+
 ### Pattern detection (list-item → routine suggestion) is a Phase 1 stretch (2026-05-24)
 FEATURES.md §4.3 "Pattern Detection" — "you've added 'mow lawn' 5 weekends in a row, make this a routine?" — not yet built. Could be a nightly Edge Function or a one-shot when the brain-dump sees a repeat.
 

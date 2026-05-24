@@ -6,9 +6,12 @@ import {
   CalendarAccountRow,
   CalendarService,
   FamilyService,
+  GOOGLE_DEFAULT_VOICE,
   MemberRole,
   MemberRow,
   MemberService,
+  TTS_ADAPTER,
+  TtsAdapter,
   detectTz,
 } from 'data-access';
 
@@ -68,10 +71,65 @@ export class SettingsComponent implements OnInit {
   readonly tzBusy = signal(false);
   readonly currentTz = () => this.family.family()?.time_zone ?? this.detectedTz;
 
+  private readonly tts = inject<TtsAdapter>(TTS_ADAPTER);
+  readonly voices = signal<Array<{ id: string; label: string; description?: string; locale: string }>>([]);
+  readonly voiceBusy = signal(false);
+  readonly previewing = signal(false);
+  readonly voiceError = signal<string | null>(null);
+  readonly currentVoiceId = () => this.family.voiceSettings()?.voiceId ?? GOOGLE_DEFAULT_VOICE;
+  readonly selectedVoiceLabel = () => {
+    const id = this.currentVoiceId();
+    const v = this.voices().find((x) => x.id === id);
+    return v ? `${v.label} — ${v.description ?? ''}` : id;
+  };
+
   async ngOnInit(): Promise<void> {
     const fam = this.family.family() ?? (await this.family.loadCurrent());
     if (!fam) { await this.router.navigateByUrl('/setup'); return; }
     await this.calendars.loadAccounts(fam.id);
+    try {
+      this.voices.set(await this.tts.listVoices());
+    } catch {
+      // Voice list is best-effort — picker just falls back to id strings if it fails.
+    }
+  }
+
+  async setVoice(ev: Event): Promise<void> {
+    const id = (ev.target as HTMLSelectElement).value;
+    if (!id) return;
+    this.voiceBusy.set(true);
+    this.voiceError.set(null);
+    try {
+      await this.family.updateVoiceSettings('google-chirp3-hd', id);
+    } catch (e: any) {
+      this.voiceError.set(e?.message ?? 'Could not save voice');
+    } finally {
+      this.voiceBusy.set(false);
+    }
+  }
+
+  async previewVoice(): Promise<void> {
+    this.previewing.set(true);
+    this.voiceError.set(null);
+    try {
+      const result = await this.tts.synthesize(
+        'Hi — this is how the assistant will sound when it talks to your family.',
+        { voiceId: this.currentVoiceId() },
+      );
+      const blob = new Blob([result.audio], { type: result.mimeType });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.addEventListener('ended', () => URL.revokeObjectURL(url));
+      await audio.play();
+    } catch (e: any) {
+      this.voiceError.set(
+        e?.message?.includes('GOOGLE_CLOUD_API_KEY')
+          ? 'TTS not configured yet — set GOOGLE_CLOUD_API_KEY on the tts edge function.'
+          : e?.message ?? 'Preview failed',
+      );
+    } finally {
+      this.previewing.set(false);
+    }
   }
 
   startNew(): void {

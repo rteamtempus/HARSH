@@ -506,7 +506,7 @@ WeeklyContextNote {
 - Context note: "Mother-in-law visiting Tue-Sun, don't mention bills or money stress in briefings"
 - Briefings during that window simply omit financial routines/items from the visible content (still exist in the system, just not surfaced on the always-on display)
 
-### 4.7 Household Memory / Knowledge Layer  *[schema landed, portal CRUD + RAG retrieval pending]*
+### 4.7 Household Memory / Knowledge Layer  *[schema + service + portal CRUD landed; AI retrieval wiring still pending]*
 A persistent store the AI can query for context. Not chat history — *facts about your household*.
 
 Examples:

@@ -1,0 +1,48 @@
+:host { display:block; min-height:100dvh; background:var(--bg-canvas); color:var(--text-primary); }
+.wrap { max-width:42rem; margin:0 auto; padding:var(--s-6) var(--s-5) var(--s-8); }
+header { display:flex; align-items:center; gap:var(--s-3); margin-bottom:var(--s-4); }
+h1 { margin:0; font-family:var(--font-display); font-size:var(--fs-h1); }
+.back { background:transparent; border:1px solid var(--line-default); border-radius:var(--r-md); padding:var(--s-1) var(--s-3); color:var(--text-primary); text-decoration:none; font-size:var(--fs-body); }
+
+.lede { color:var(--text-tertiary); margin:0 0 var(--s-5); font-size:var(--fs-small); }
+
+.add-section { margin-bottom:var(--s-4); }
+.add-btn { background:transparent; border:1px dashed var(--accent); color:var(--accent); padding:var(--s-3) var(--s-4); border-radius:var(--r-md); cursor:pointer; font-size:var(--fs-small); font-weight:600; }
+.add-btn:hover { background:var(--accent-soft); }
+
+.editor { background:var(--bg-raised); border:1px solid var(--line-subtle); border-radius:var(--r-md); padding:var(--s-4); display:flex; flex-direction:column; gap:var(--s-3); }
+.editor h3 { margin:0; font-family:var(--font-display); font-size:var(--fs-h3); }
+.editor label { display:flex; flex-direction:column; gap:var(--s-1); color:var(--text-secondary); font-size:var(--fs-small); }
+.editor input, .editor textarea, .editor select { padding:var(--s-2) var(--s-3); font-size:var(--fs-body); border-radius:var(--r-md); border:1px solid var(--line-default); background:var(--bg-sunken); color:var(--text-primary); font-family:inherit; }
+.editor input:focus, .editor textarea:focus, .editor select:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
+.editor input:disabled { opacity:0.6; }
+.actions { display:flex; gap:var(--s-2); justify-content:flex-end; margin-top:var(--s-2); }
+.primary { background:var(--accent); color:var(--text-on-accent); border:0; padding:var(--s-2) var(--s-4); border-radius:var(--r-md); font-weight:600; cursor:pointer; }
+.primary:hover:not(:disabled) { background:var(--accent-hover); }
+.primary:disabled { opacity:0.5; cursor:default; }
+.ghost { background:transparent; border:1px solid var(--line-default); color:var(--text-primary); padding:var(--s-2) var(--s-4); border-radius:var(--r-md); cursor:pointer; }
+.ghost:hover { border-color:var(--accent); color:var(--accent); }
+
+.search { width:100%; box-sizing:border-box; padding:var(--s-2) var(--s-3); margin:0 0 var(--s-4); font-size:var(--fs-body); border-radius:var(--r-md); border:1px solid var(--line-default); background:var(--bg-sunken); color:var(--text-primary); }
+.search:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
+
+.empty { color:var(--text-tertiary); font-style:italic; padding:var(--s-5) 0; text-align:center; }
+
+.group { margin-top:var(--s-5); }
+.group-head { font-family:var(--font-display); font-size:var(--fs-h3); color:var(--text-secondary); text-transform:capitalize; margin:0 0 var(--s-2); padding-bottom:var(--s-1); border-bottom:1px solid var(--line-subtle); }
+
+.facts { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:var(--s-2); }
+.fact { display:flex; gap:var(--s-3); align-items:flex-start; background:var(--bg-raised); border:1px solid var(--line-subtle); border-radius:var(--r-md); padding:var(--s-3) var(--s-4); box-shadow:var(--shadow-sm); }
+.fact-body { flex:1; min-width:0; }
+.fact-key { font-family:var(--font-mono); font-size:var(--fs-small); color:var(--text-secondary); margin-bottom:2px; }
+.fact-value { font-size:var(--fs-body); white-space:pre-wrap; }
+.fact-meta { color:var(--text-tertiary); font-size:var(--fs-micro); margin-top:var(--s-1); }
+
+.fact-actions { display:flex; gap:var(--s-1); flex-direction:column; }
+.small { padding:var(--s-1) var(--s-2); font-size:var(--fs-micro); border-radius:var(--r-sm); cursor:pointer; }
+.ghost.small { background:transparent; border:1px solid var(--line-default); color:var(--text-secondary); }
+.ghost.small:hover { border-color:var(--accent); color:var(--accent); }
+.danger.small { background:transparent; border:1px solid var(--danger); color:var(--danger); }
+.danger.small:hover { background:var(--danger); color:#fff; }
+
+.error { color:var(--danger); margin:var(--s-3) 0 0; font-size:var(--fs-small); }

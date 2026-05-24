@@ -1,7 +1,13 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, isDevMode } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
-import { GeminiLlmAdapter, HARSH_SUPABASE_CONFIG, LLM_ADAPTER } from 'data-access';
+import {
+  GeminiLlmAdapter,
+  GoogleTtsAdapter,
+  HARSH_SUPABASE_CONFIG,
+  LLM_ADAPTER,
+  TTS_ADAPTER,
+} from 'data-access';
 
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
@@ -19,5 +25,6 @@ export const appConfig: ApplicationConfig = {
       useValue: { url: environment.supabaseUrl, anonKey: environment.supabaseAnonKey },
     },
     { provide: LLM_ADAPTER, useClass: GeminiLlmAdapter },
+    { provide: TTS_ADAPTER, useClass: GoogleTtsAdapter },
   ],
 };

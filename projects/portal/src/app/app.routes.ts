@@ -22,6 +22,12 @@ export const routes: Routes = [
     loadComponent: () => import('./routines/routines.component').then((m) => m.RoutinesComponent),
   },
   {
+    path: 'facts',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./household-facts/household-facts.component').then((m) => m.HouseholdFactsComponent),
+  },
+  {
     path: 'calendar',
     canActivate: [authGuard],
     loadComponent: () => import('./calendar/calendar.component').then((m) => m.CalendarComponent),

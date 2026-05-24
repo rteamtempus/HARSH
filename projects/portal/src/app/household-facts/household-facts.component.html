@@ -1,0 +1,95 @@
+<main class="wrap">
+  <header>
+    <a routerLink="/" class="back" aria-label="Back to home">←</a>
+    <h1>Household facts</h1>
+  </header>
+
+  <p class="lede">
+    Things the assistant should know about your household — the kind of stuff
+    you'd put on a sticky note. Pediatrician's name, lawn service contact, which
+    bin is recycling, what your kid's afraid of. Used as context when the
+    assistant answers questions or writes briefings.
+  </p>
+
+  <section class="add-section">
+    @if (!adding()) {
+      <button class="add-btn" (click)="startAdd()">+ Add fact</button>
+    } @else {
+      <form class="editor" (submit)="$event.preventDefault(); saveNew()">
+        <h3>{{ editingId() ? 'Edit fact' : 'New fact' }}</h3>
+        <label>
+          Key
+          <input
+            type="text"
+            [(ngModel)]="draft.key"
+            name="key"
+            placeholder="e.g. pediatrician, trash_day, lawn_service"
+            [disabled]="!!editingId()"
+            required
+          />
+        </label>
+        <label>
+          Value
+          <textarea [(ngModel)]="draft.value" name="value" rows="2"
+                    placeholder="e.g. Dr. Lee at Northwest Pediatrics, (555) 123-4567" required></textarea>
+        </label>
+        <label>
+          Category (optional)
+          <select [(ngModel)]="draft.category" name="category">
+            <option value="">— none —</option>
+            @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
+          </select>
+        </label>
+        <div class="actions">
+          <button type="button" class="ghost" (click)="cancelAdd()">Cancel</button>
+          <button type="submit" class="primary" [disabled]="busy()">
+            @if (busy()) { Saving… } @else { Save }
+          </button>
+        </div>
+        @if (error(); as e) { <p class="error">{{ e }}</p> }
+      </form>
+    }
+  </section>
+
+  <input
+    class="search"
+    type="search"
+    [(ngModel)]="searchQuery"
+    name="search"
+    placeholder="Search facts…"
+    (input)="onSearch()"
+  />
+
+  @if (visible().length === 0) {
+    <p class="empty">
+      @if (searchQuery) { No matches. }
+      @else { No facts yet. Add one above — or tell the assistant "remember that…" }
+    </p>
+  } @else {
+    @for (group of grouped(); track group.category) {
+      <section class="group">
+        <h2 class="group-head">{{ group.category || 'Uncategorized' }}</h2>
+        <ul class="facts">
+          @for (f of group.facts; track f.id) {
+            <li class="fact">
+              <div class="fact-body">
+                <div class="fact-key">{{ f.key }}</div>
+                <div class="fact-value">{{ f.value }}</div>
+                <div class="fact-meta">
+                  updated {{ f.last_updated | date:'mediumDate' }}
+                  @if (f.source && f.source !== 'manual') { · from {{ f.source }} }
+                </div>
+              </div>
+              <div class="fact-actions">
+                <button class="ghost small" (click)="startEdit(f)">Edit</button>
+                <button class="danger small" (click)="remove(f)">Delete</button>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+
+  @if (loadError(); as e) { <p class="error">{{ e }}</p> }
+</main>

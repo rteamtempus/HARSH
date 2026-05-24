@@ -44,6 +44,34 @@ export class FamilyService {
     return fam;
   }
 
+  /**
+   * Read a voice-settings slice from `families.settings` jsonb.
+   * Family-level setting (FEATURES.md §5.4): one assistant voice for the household,
+   * used by every device. Returns null when unset (caller picks a default voice).
+   */
+  voiceSettings(): { provider: string; voiceId: string } | null {
+    const settings = (this.family()?.settings ?? {}) as Record<string, unknown>;
+    const voice = settings['voice'] as { provider?: string; voice_id?: string } | undefined;
+    if (!voice?.provider || !voice?.voice_id) return null;
+    return { provider: voice.provider, voiceId: voice.voice_id };
+  }
+
+  /** Persist voice settings into `families.settings.voice`. */
+  async updateVoiceSettings(provider: string, voiceId: string): Promise<void> {
+    const fam = this.family();
+    if (!fam) throw new Error('No family loaded');
+    const current = (fam.settings ?? {}) as Record<string, unknown>;
+    const nextSettings = { ...current, voice: { provider, voice_id: voiceId } };
+    const { data, error } = await this.supabase
+      .from('families')
+      .update({ settings: nextSettings })
+      .eq('id', fam.id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    this.family.set(data);
+  }
+
   /** Update the family's IANA time zone. */
   async updateTimeZone(timeZone: string): Promise<void> {
     const fam = this.family();

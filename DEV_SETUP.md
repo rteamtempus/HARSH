@@ -14,8 +14,11 @@ Last updated: 2026-05-24
 - [x] CLI linked (`npm run db:link`)
 - [x] Migrations pushed (auto-applied as features land)
 - [ ] Edge Function secrets configured
-  - [ ] `GEMINI_API_KEY` — verify it's set on the `ai-intent` function
-  - [ ] `GOOGLE_CLOUD_API_KEY` — add once you have the key from §3
+  - [ ] `GEMINI_API_KEY` — verify it's set on the `ai-intent` AND new `llm` functions
+  - [ ] `GOOGLE_CLOUD_API_KEY` — add to the new `tts` function once you have the key from §3
+- [ ] **Deploy edge functions** as features land:
+  - [ ] `npx supabase functions deploy llm` (brain-dump backend)
+  - [ ] `npx supabase functions deploy tts` (voice synthesis)
 - [ ] Schedule the context-note reaper (`reap_expired_context_notes()`) via pg_cron — Phase 1 wiring (TODO from current Claude work)
 - [ ] Schedule briefing regeneration (Phase 2 — not yet needed)
 

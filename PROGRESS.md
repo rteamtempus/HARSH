@@ -34,7 +34,7 @@ These shipped in the initial scaffold (commit `143841e`):
   - [x] `SttAdapter` interface ([projects/data-access/src/lib/adapters/stt.adapter.ts](projects/data-access/src/lib/adapters/stt.adapter.ts))
   - [x] `TranscriptionAdapter` interface ([projects/data-access/src/lib/adapters/transcription.adapter.ts](projects/data-access/src/lib/adapters/transcription.adapter.ts))
   - [x] Concrete Gemini LLM adapter ([gemini-llm.adapter.ts](projects/data-access/src/lib/adapters/gemini-llm.adapter.ts)) + new `llm` Edge Function ([supabase/functions/llm/index.ts](supabase/functions/llm/index.ts)) — **needs `supabase functions deploy llm` from owner**
-  - [ ] Concrete Google Chirp 3 HD TTS adapter (needs Edge Function proxy + `GOOGLE_CLOUD_API_KEY`)
+  - [x] Concrete Google Chirp 3 HD TTS adapter + `tts` Edge Function — **needs `GOOGLE_CLOUD_API_KEY` secret on the function**
   - [ ] Concrete browser/cloud STT adapters
 - [x] CLAUDE.md initial scaffolding
 - [~] "How to Use" page scaffolding — **page exists, hamburger menu entry pending**
@@ -57,10 +57,10 @@ These shipped in the initial scaffold (commit `143841e`):
   - [x] Fair rotation column wired through (briefing-side surfacing pending in Phase 2)
   - [ ] Pattern detection: list-item-to-routine suggestion at 4+ occurrences (Phase 1 stretch)
   - [x] Portal CRUD UI ([routines.component.ts](projects/portal/src/app/routines/routines.component.ts)) at `/routines`
-- [~] Household memory / facts — **service done, portal CRUD pending**
+- [x] Household memory / facts
   - [x] Schema (`household_facts`)
   - [x] [HouseholdFactsService](projects/data-access/src/lib/household-facts.service.ts) with upsert-by-key + ILIKE search for RAG retrieval
-  - [ ] Portal CRUD UI
+  - [x] Portal CRUD UI at [/facts](projects/portal/src/app/household-facts/household-facts.component.ts) — search + categorize + edit value (key is immutable)
 - [~] Profile model + polymorphic `assignee` on items/events/routines
   - [x] `profiles` table + `assignee_member_id`/`assignee_profile_id` on `list_items` and `routines`
   - [x] `assignee_profile_id` on `events` ([20260524020000](supabase/migrations/20260524020000_routine_actions_and_events_assignee.sql))
@@ -82,9 +82,13 @@ These shipped in the initial scaffold (commit `143841e`):
   - [x] Hamburger nav to Lists, Calendar, Settings, Help, Release Notes
   - [x] Existing list CRUD moved to [/lists](projects/portal/src/app/lists/lists.ts)
   - [ ] Inline per-item editing (current UX is confirm/skip only — edit means re-dumping)
-- [ ] Family-level voice settings (TTS provider integration)
-  - [ ] `family_settings.voice_id`, `tts_provider` columns
-  - [ ] Audition + switch in hamburger menu
+- [~] Family-level voice settings (TTS provider integration) — **wired end-to-end; needs API key on edge function to actually synthesize**
+  - [x] Voice + provider stored in `families.settings.voice` jsonb (no migration needed)
+  - [x] `FamilyService.voiceSettings()` / `updateVoiceSettings()`
+  - [x] `tts` Supabase Edge Function ([supabase/functions/tts/index.ts](supabase/functions/tts/index.ts)) — needs `GOOGLE_CLOUD_API_KEY` secret + `supabase functions deploy tts`
+  - [x] `GoogleTtsAdapter` ([gemini-llm.adapter.ts neighbor](projects/data-access/src/lib/adapters/google-tts.adapter.ts)) with curated Chirp 3 HD voice list
+  - [x] Voice picker + audition Preview in Settings ([settings.component](projects/portal/src/app/settings/settings.component.ts))
+  - [x] `TTS_ADAPTER` provider wired in [app.config.ts](projects/portal/src/app/app.config.ts)
 
 ## Phase 2 — Ambient intelligence
 

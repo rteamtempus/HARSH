@@ -24,6 +24,34 @@
     </div>
   </section>
 
+  <!-- Voice -->
+  <section>
+    <h2>Voice</h2>
+    <p class="hint">
+      Pick the voice the assistant uses on every device. Briefings and spoken
+      replies all use this — one assistant, one voice.
+    </p>
+    <div class="row">
+      <span class="dot" [style.background]="'#a87a4f'"></span>
+      <div class="meta">
+        <strong>Assistant voice</strong>
+        <span class="sub">{{ selectedVoiceLabel() }}</span>
+      </div>
+      <select (change)="setVoice($event)" [disabled]="voiceBusy()">
+        @for (v of voices(); track v.id) {
+          <option [value]="v.id" [selected]="v.id === currentVoiceId()">{{ v.label }} — {{ v.description }}</option>
+        }
+      </select>
+    </div>
+    <div class="row-actions">
+      <button type="button" class="ghost" (click)="previewVoice()" [disabled]="voiceBusy() || previewing()">
+        @if (previewing()) { Synthesizing… }
+        @else { 🔊 Preview }
+      </button>
+    </div>
+    @if (voiceError(); as e) { <p class="error">{{ e }}</p> }
+  </section>
+
   <!-- Members -->
   <section>
     <h2>Family members</h2>
