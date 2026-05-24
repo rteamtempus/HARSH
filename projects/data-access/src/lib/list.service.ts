@@ -82,6 +82,28 @@ export class ListService {
     if (error) throw error;
   }
 
+  /** Find list by case-insensitive name match within family. */
+  findByName(name: string): ListRow | undefined {
+    const lower = name.trim().toLowerCase();
+    return this.lists().find((l) => l.name.toLowerCase() === lower);
+  }
+
+  /** Create a new list. Used by brain-dump when the LLM proposes a list that doesn't exist. */
+  async createList(
+    familyId: string,
+    name: string,
+    kind: ListRow['kind'] = 'custom',
+  ): Promise<ListRow> {
+    const sortOrder = (this.lists().reduce((m, l) => Math.max(m, l.sort_order ?? 0), 0) ?? 0) + 1;
+    const { data, error } = await this.supabase
+      .from('lists')
+      .insert({ family_id: familyId, name: name.trim(), kind, sort_order: sortOrder })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
   /** Subscribes to realtime changes for both lists and list_items in this family. */
   private subscribe(familyId: string): void {
     if (this.currentFamilyId === familyId && this.channel) return;

@@ -56,6 +56,38 @@ export class EventService {
     this.currentFamilyId = null;
   }
 
+  async create(input: {
+    familyId: string;
+    title: string;
+    startsAt: string;
+    endsAt?: string | null;
+    allDay?: boolean;
+    location?: string | null;
+    notes?: string | null;
+    ownerMemberId?: string | null;
+    assigneeProfileId?: string | null;
+    source?: 'manual' | 'voice';
+  }): Promise<EventRow> {
+    const { data, error } = await this.supabase
+      .from('events')
+      .insert({
+        family_id: input.familyId,
+        title: input.title,
+        starts_at: input.startsAt,
+        ends_at: input.endsAt ?? null,
+        all_day: input.allDay ?? false,
+        location: input.location ?? null,
+        notes: input.notes ?? null,
+        owner_member_id: input.ownerMemberId ?? null,
+        assignee_profile_id: input.assigneeProfileId ?? null,
+        source: input.source ?? 'manual',
+      })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
   private apply(payload: { eventType: string; new: any; old: any }): void {
     const list = this.events().slice();
     if (payload.eventType === 'INSERT') {

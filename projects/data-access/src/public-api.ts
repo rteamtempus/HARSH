@@ -14,5 +14,6 @@ export * from './lib/routine.service';
 export * from './lib/profile.service';
 export * from './lib/household-facts.service';
 export * from './lib/context-notes.service';
+export * from './lib/brain-dump.service';
 export * from './lib/adapters';
 export * from './lib/adapters/gemini-llm.adapter';

@@ -72,12 +72,16 @@ These shipped in the initial scaffold (commit `143841e`):
   - [x] Auto-delete RPC `reap_expired_context_notes()`
   - [ ] **Schedule the reaper via pg_cron** (in DEV_SETUP.md infra checklist)
   - [ ] Portal CRUD screen in hamburger menu
-- [ ] Mobile UI redesign with **brain dump home page** (replaces current home)
-  - [ ] Single text input + transcription toggle
-  - [ ] Multi-turn capture/query (cleared on commit / app background)
-  - [ ] Per-item confirmation cards + prominent "Confirm All"
-  - [ ] LLM mode detection (capture vs. query) — no manual toggle
-  - [ ] Lists-as-context for LLM routing
+- [x] Mobile UI redesign with **brain dump home page** (replaces current home)
+  - [x] Single text input + transcription toggle ([home.ts](projects/portal/src/app/home/home.ts))
+  - [x] Multi-turn via `follow_up` mode; context cleared on commit / fresh query
+  - [x] Per-item confirmation cards + prominent "Confirm All"
+  - [x] LLM mode detection (capture / query / follow_up) — no manual toggle
+  - [x] Lists / members / profiles / snapshot fed to LLM as context
+  - [x] Executor routes confirmed items to ListService / EventService / RoutineService / HouseholdFactsService / ContextNotesService
+  - [x] Hamburger nav to Lists, Calendar, Settings, Help, Release Notes
+  - [x] Existing list CRUD moved to [/lists](projects/portal/src/app/lists/lists.ts)
+  - [ ] Inline per-item editing (current UX is confirm/skip only — edit means re-dumping)
 - [ ] Family-level voice settings (TTS provider integration)
   - [ ] `family_settings.voice_id`, `tts_provider` columns
   - [ ] Audition + switch in hamburger menu

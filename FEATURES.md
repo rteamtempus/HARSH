@@ -75,7 +75,7 @@ A household assistant for two ADHD adults and a 4-year-old, designed to compensa
 - Manual sync triggers, settings, "source of truth" admin
 - **Home page = brain dump surface** (see 2.1.1). Everything else lives in hamburger menu.
 
-#### 2.1.1 Brain Dump Home Page (primary interaction)
+#### 2.1.1 Brain Dump Home Page (primary interaction)  *[v1 landed: capture/query/follow_up modes + confirm cards + Confirm All + hamburger nav; inline per-item editing deferred]*
 The home page is a single large text input with a transcription toggle button above it. User types or speaks freely; Gemini parses the dump and routes content into the right primitives (lists, events, routines, household facts, deadlines).
 
 **Why:** User has ADHD; structured forms cause blank-mind freeze. Brain dump is the strongest input modality. ~80% of mobile interactions will be capture, not navigation.

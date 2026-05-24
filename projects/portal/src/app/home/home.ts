@@ -1,7 +1,39 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AiService, AuthService, FamilyService, ListItemRow, ListRow, ListService, ThemeService, VoiceService } from 'data-access';
+import {
+  AuthService,
+  BrainDumpContext,
+  BrainDumpItem,
+  BrainDumpResult,
+  BrainDumpService,
+  ContextNotesService,
+  EventService,
+  FamilyService,
+  HouseholdFactsService,
+  ListService,
+  ProfileService,
+  RoutineService,
+  ThemeService,
+  VoiceService,
+} from 'data-access';
+
+// Brain-dump primary surface — see FEATURES.md §2.1.1.
+//
+// One textarea, one mic. LLM classifies the input as capture / query / follow-up
+// and returns either an answer or proposed items. User confirms (per item or all)
+// before anything writes. Context clears on commit / answered query / app blur.
+
+type Stage = 'idle' | 'parsing' | 'review' | 'committing';
 
 @Component({
   selector: 'harsh-home',
@@ -11,101 +43,140 @@ import { AiService, AuthService, FamilyService, ListItemRow, ListRow, ListServic
   template: `
     <main class="wrap">
       <header>
-        <div>
+        <div class="brand">
           <h1>{{ family.family()?.name ?? 'HARSH' }}</h1>
           <p class="who">{{ auth.user()?.email }}</p>
         </div>
-        <div class="header-actions">
-          <button class="ghost" (click)="theme.toggleMode()" [attr.aria-label]="'Switch to ' + (theme.state().mode === 'dark' ? 'light' : 'dark') + ' mode'">
-            {{ theme.state().mode === 'dark' ? '☀' : '☾' }}
-          </button>
-          <a routerLink="/calendar" class="ghost">Calendar</a>
-          <a routerLink="/settings" class="ghost">Settings</a>
-          <button class="ghost" (click)="signOut()">Sign out</button>
-        </div>
+        <button class="hamburger" (click)="toggleMenu()" aria-label="Menu">☰</button>
       </header>
 
-      @if (voice.supported()) {
-        <section class="voice" [class.wake-flash]="wakeFlash()">
-          <button
-            class="mic"
-            [class.listening]="voice.listening() || voice.wakeArmed()"
-            [disabled]="aiBusy()"
-            (click)="toggleMic()"
-            [attr.aria-label]="voice.listening() ? 'Stop listening' : 'Start voice command'"
-          >
-            @if (aiBusy()) { <span class="spinner"></span> }
-            @else if (wakeFlash()) { ✨ Heard you! }
-            @else if (voice.wakeArmed()) { <span class="rec"></span> Listening for “Hey HARSH” }
-            @else if (voice.listening()) { <span class="rec"></span> Listening… }
-            @else { 🎤 Tap to speak }
+      @if (menuOpen()) {
+        <div class="menu-backdrop" (click)="menuOpen.set(false)"></div>
+        <nav class="menu" aria-label="Main menu">
+          <a routerLink="/lists" (click)="menuOpen.set(false)">Lists</a>
+          <a routerLink="/calendar" (click)="menuOpen.set(false)">Calendar</a>
+          <a routerLink="/settings" (click)="menuOpen.set(false)">Settings</a>
+          <a routerLink="/help" (click)="menuOpen.set(false)">How to use</a>
+          <a routerLink="/release-notes" (click)="menuOpen.set(false)">What's new</a>
+          <button class="theme-toggle" (click)="theme.toggleMode()">
+            {{ theme.state().mode === 'dark' ? '☀ Light mode' : '☾ Dark mode' }}
           </button>
-          <div class="voice-controls">
-            <label class="wake">
-              <input type="checkbox" [checked]="voice.wakeArmed()" (change)="toggleWake()" />
-              <span>Always listen for “Hey HARSH”</span>
-            </label>
-            @if (voice.voices().length > 0) {
-              <details class="voice-picker">
-                <summary>Voice: {{ voice.selectedVoiceName() ?? 'Browser default' }}</summary>
-                <div class="picker-body">
-                  <select [value]="voice.selectedVoiceName() ?? ''" (change)="pickVoice($event)">
-                    <option value="">Browser default</option>
-                    @for (v of voice.voices(); track v.name) {
-                      <option [value]="v.name">{{ v.name }} ({{ v.lang }})</option>
-                    }
-                  </select>
-                  <button type="button" class="ghost small" (click)="voice.preview()">Preview</button>
-                </div>
-              </details>
-            }
-          </div>
-          @if ((voice.listening() || voice.wakeArmed()) && voice.transcript()) {
-            <p class="transcript">{{ voice.transcript() }}</p>
-          }
-          @if (lastReply(); as r) { <p class="reply">{{ r }}</p> }
-        </section>
-      } @else {
-        <p class="muted small">Voice input isn't supported in this browser.</p>
+          <button class="sign-out" (click)="signOut()">Sign out</button>
+        </nav>
       }
 
-      @if (lists.lists().length === 0) {
-        <p class="muted empty">No lists yet.</p>
-      } @else {
-        <nav class="tabs" role="tablist">
-          @for (l of lists.lists(); track l.id) {
+      <section class="dump-card">
+        <textarea
+          #dumpInput
+          class="dump-input"
+          [(ngModel)]="draft"
+          name="draft"
+          [placeholder]="placeholder()"
+          rows="5"
+          autocomplete="off"
+          [disabled]="stage() === 'parsing' || stage() === 'committing'"
+          (keydown.meta.enter)="$event.preventDefault(); submit()"
+          (keydown.control.enter)="$event.preventDefault(); submit()"
+        ></textarea>
+
+        <div class="dump-actions">
+          @if (voice.supported()) {
             <button
-              role="tab"
-              [class.active]="activeListId() === l.id"
-              (click)="selectList(l.id)"
-            >{{ l.name }}</button>
+              type="button"
+              class="mic"
+              [class.listening]="voice.listening()"
+              (click)="toggleMic()"
+              [attr.aria-label]="voice.listening() ? 'Stop transcribing' : 'Start transcribing'"
+            >
+              @if (voice.listening()) { <span class="rec"></span> Listening… }
+              @else { 🎤 Speak }
+            </button>
           }
-        </nav>
+          <button
+            type="button"
+            class="submit"
+            (click)="submit()"
+            [disabled]="!draft.trim() || stage() === 'parsing' || stage() === 'committing'"
+          >
+            @if (stage() === 'parsing') { <span class="spinner"></span> Parsing… }
+            @else { Send }
+          </button>
+        </div>
 
-        <form class="adder" (submit)="$event.preventDefault(); add()">
-          <input
-            type="text"
-            [(ngModel)]="draft"
-            name="draft"
-            [placeholder]="addPlaceholder()"
-            autocomplete="off"
-          />
-          <button type="submit" [disabled]="!draft.trim()">Add</button>
-        </form>
+        @if (voice.listening() && voice.transcript()) {
+          <p class="transcript">{{ voice.transcript() }}</p>
+        }
+      </section>
 
-        <ul class="items">
-          @for (item of activeItems(); track item.id) {
-            <li [class.checked]="item.checked">
-              <button class="check" (click)="toggle(item)" [attr.aria-label]="item.checked ? 'Uncheck' : 'Check'">
-                @if (item.checked) { <span>✓</span> }
-              </button>
-              <span class="text">{{ item.text }}</span>
-              <button class="remove" (click)="remove(item)" aria-label="Remove">×</button>
-            </li>
-          } @empty {
-            <li class="muted empty">Nothing here yet. Add the first item above.</li>
+      @if (result(); as r) {
+        @switch (r.mode) {
+          @case ('query') {
+            <section class="reply">
+              <p>{{ r.reply }}</p>
+              <button class="ghost small" (click)="reset()">Ask another</button>
+            </section>
           }
-        </ul>
+          @case ('follow_up') {
+            <section class="reply follow-up">
+              <p class="q">{{ r.reply }}</p>
+              <p class="hint">Type your answer above and send again.</p>
+            </section>
+          }
+          @case ('capture') {
+            <section class="review">
+              <header class="review-header">
+                <p class="summary">{{ r.reply }}</p>
+                @if (r.items.length > 0) {
+                  <button class="confirm-all" (click)="confirmAll()" [disabled]="stage() === 'committing'">
+                    Confirm all ({{ activeCount() }})
+                  </button>
+                }
+              </header>
+
+              @if (r.items.length === 0) {
+                <p class="muted small">Nothing actionable found in that. Try again or ask a question instead.</p>
+              }
+
+              <ul class="cards">
+                @for (item of r.items; track $index; let i = $index) {
+                  <li class="card" [class.skipped]="skipped().has(i)">
+                    <div class="card-body">
+                      <p class="describe">{{ describe(item) }}</p>
+                      @if (item.reasoning) {
+                        <p class="reason">“{{ item.reasoning }}”</p>
+                      }
+                    </div>
+                    <div class="card-actions">
+                      @if (skipped().has(i)) {
+                        <button class="ghost small" (click)="unskip(i)">Bring back</button>
+                      } @else {
+                        <button class="ghost small" (click)="skip(i)">Skip</button>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+
+              @if (r.items.length > 0) {
+                <button
+                  class="commit-btn"
+                  (click)="commit()"
+                  [disabled]="activeCount() === 0 || stage() === 'committing'"
+                >
+                  @if (stage() === 'committing') { <span class="spinner"></span> Saving… }
+                  @else { Save {{ activeCount() }} {{ activeCount() === 1 ? 'item' : 'items' }} }
+                </button>
+              }
+            </section>
+          }
+        }
+      }
+
+      @if (lastSummary(); as s) {
+        <p class="commit-result">
+          Saved {{ s.applied }} {{ s.applied === 1 ? 'item' : 'items' }}.
+          @if (s.errors.length) { <span class="err"> {{ s.errors.length }} failed.</span> }
+        </p>
       }
 
       @if (error(); as e) { <p class="error">{{ e }}</p> }
@@ -114,65 +185,69 @@ import { AiService, AuthService, FamilyService, ListItemRow, ListRow, ListServic
   styles: [`
     :host { display:block; min-height:100dvh; background:var(--bg-canvas); color:var(--text-primary); }
     .wrap { max-width:36rem; margin:0 auto; padding:var(--s-6) var(--s-5) var(--s-8); }
+
     header { display:flex; align-items:flex-start; justify-content:space-between; gap:var(--s-4); margin-bottom:var(--s-6); }
     h1 { margin:0; font-family:var(--font-display); font-size:var(--fs-h1); }
     .who { color:var(--text-tertiary); margin:var(--s-1) 0 0; font-size:var(--fs-small); }
-    .header-actions { display:flex; gap:var(--s-2); }
-    .ghost { background:transparent; border:1px solid var(--line-default); padding:var(--s-2) var(--s-3); border-radius:var(--r-md); cursor:pointer; color:var(--text-primary); font-size:var(--fs-small); transition:border-color var(--dur-fast) var(--ease-out); text-decoration:none; display:inline-flex; align-items:center; }
-    .ghost:hover { border-color:var(--accent); color:var(--accent); }
+    .hamburger { background:transparent; border:1px solid var(--line-default); border-radius:var(--r-md); padding:var(--s-2) var(--s-3); color:var(--text-primary); cursor:pointer; font-size:var(--fs-h2); line-height:1; }
+    .hamburger:hover { border-color:var(--accent); color:var(--accent); }
 
-    .tabs { display:flex; gap:var(--s-2); margin-bottom:var(--s-4); flex-wrap:wrap; }
-    .tabs button { background:var(--bg-surface); border:1px solid var(--line-subtle); color:var(--text-secondary); padding:var(--s-2) var(--s-4); border-radius:var(--r-pill); cursor:pointer; font-size:var(--fs-small); font-weight:500; transition:all var(--dur-fast) var(--ease-out); }
-    .tabs button:hover { color:var(--text-primary); border-color:var(--line-default); }
-    .tabs button.active { background:var(--accent); color:var(--text-on-accent); border-color:var(--accent); }
+    .menu-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.25); z-index:50; }
+    .menu { position:fixed; top:0; right:0; bottom:0; width:min(18rem, 80vw); background:var(--bg-raised); border-left:1px solid var(--line-default); box-shadow:var(--shadow-lg); padding:var(--s-6) var(--s-5); display:flex; flex-direction:column; gap:var(--s-2); z-index:51; }
+    .menu a, .menu button { background:transparent; border:0; color:var(--text-primary); text-decoration:none; text-align:left; padding:var(--s-3) var(--s-2); font-size:var(--fs-body); border-radius:var(--r-md); cursor:pointer; }
+    .menu a:hover, .menu button:hover { background:var(--bg-surface); color:var(--accent); }
+    .menu .sign-out { color:var(--danger); margin-top:auto; border-top:1px solid var(--line-subtle); border-radius:0; }
+    .menu .theme-toggle { color:var(--text-secondary); }
 
-    .adder { display:flex; gap:var(--s-2); margin-bottom:var(--s-4); }
-    .adder input { flex:1; padding:var(--s-3) var(--s-4); font-size:var(--fs-body); border-radius:var(--r-md); border:1px solid var(--line-default); background:var(--bg-sunken); color:var(--text-primary); }
-    .adder input:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
-    .adder button { padding:var(--s-3) var(--s-5); font-size:var(--fs-body); border-radius:var(--r-md); border:0; background:var(--accent); color:var(--text-on-accent); font-weight:600; cursor:pointer; transition:background var(--dur-fast) var(--ease-out); }
-    .adder button:hover:not(:disabled) { background:var(--accent-hover); }
-    .adder button:disabled { opacity:0.5; cursor:default; }
+    .dump-card { background:var(--bg-raised); border:1px solid var(--line-subtle); border-radius:var(--r-lg); padding:var(--s-4); box-shadow:var(--shadow-sm); margin-bottom:var(--s-5); }
+    .dump-input { width:100%; box-sizing:border-box; padding:var(--s-3) var(--s-4); font-size:var(--fs-body); line-height:1.5; border-radius:var(--r-md); border:1px solid var(--line-default); background:var(--bg-sunken); color:var(--text-primary); resize:vertical; font-family:inherit; }
+    .dump-input:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
+    .dump-input:disabled { opacity:0.7; }
+    .dump-actions { display:flex; gap:var(--s-2); margin-top:var(--s-3); }
+    .mic, .submit { padding:var(--s-3) var(--s-5); font-size:var(--fs-body); font-weight:600; border-radius:var(--r-md); border:0; cursor:pointer; display:inline-flex; align-items:center; gap:var(--s-2); }
+    .mic { background:transparent; border:1px solid var(--line-default); color:var(--text-primary); }
+    .mic:hover { border-color:var(--accent); color:var(--accent); }
+    .mic.listening { background:var(--danger); color:var(--text-on-accent); border-color:transparent; animation:pulse 1.4s ease-in-out infinite; }
+    .submit { background:var(--accent); color:var(--text-on-accent); flex:1; justify-content:center; }
+    .submit:hover:not(:disabled) { background:var(--accent-hover); }
+    .submit:disabled { opacity:0.5; cursor:default; }
+    .rec { width:0.7rem; height:0.7rem; background:#fff; border-radius:var(--r-pill); }
+    .spinner { width:1rem; height:1rem; border:2px solid rgba(255,255,255,0.4); border-top-color:currentColor; border-radius:50%; animation:spin 0.7s linear infinite; }
+    .transcript { color:var(--text-secondary); font-style:italic; font-size:var(--fs-small); margin:var(--s-3) 0 0; }
 
-    .items { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:var(--s-2); }
-    .items li { display:flex; align-items:center; gap:var(--s-3); background:var(--bg-raised); padding:var(--s-3) var(--s-4); border-radius:var(--r-md); border:1px solid var(--line-subtle); box-shadow:var(--shadow-sm); }
-    .items li.checked { opacity:0.55; }
-    .items li.checked .text { text-decoration:line-through; }
-    .check { width:1.6rem; height:1.6rem; flex:none; border-radius:var(--r-sm); border:1.5px solid var(--line-strong); background:var(--bg-sunken); cursor:pointer; display:grid; place-items:center; color:var(--text-on-accent); font-weight:700; transition:all var(--dur-fast) var(--ease-out); padding:0; }
-    .check:hover { border-color:var(--accent); }
-    .items li.checked .check { background:var(--success); border-color:var(--success); }
-    .text { flex:1; font-size:var(--fs-body); }
-    .remove { background:transparent; border:0; color:var(--text-tertiary); font-size:var(--fs-h2); cursor:pointer; padding:0 var(--s-2); line-height:1; }
-    .remove:hover { color:var(--danger); }
+    .reply { background:var(--bg-surface); border:1px solid var(--line-subtle); border-radius:var(--r-lg); padding:var(--s-4); margin-bottom:var(--s-4); }
+    .reply p { margin:0 0 var(--s-3); line-height:1.5; }
+    .reply.follow-up .q { font-weight:600; }
+    .reply.follow-up .hint { color:var(--text-tertiary); font-size:var(--fs-small); margin:0; }
 
-    .muted.empty { color:var(--text-tertiary); padding:var(--s-5) 0; text-align:center; font-style:italic; }
-    .muted.small { color:var(--text-tertiary); font-size:var(--fs-small); margin:var(--s-3) 0; }
-    .error { color:var(--danger); margin-top:var(--s-4); font-size:var(--fs-small); }
+    .review { display:flex; flex-direction:column; gap:var(--s-3); }
+    .review-header { display:flex; align-items:center; justify-content:space-between; gap:var(--s-3); flex-wrap:wrap; }
+    .summary { margin:0; color:var(--text-secondary); font-style:italic; flex:1; min-width:14rem; }
+    .confirm-all { background:transparent; border:1px solid var(--accent); color:var(--accent); padding:var(--s-2) var(--s-3); font-size:var(--fs-small); border-radius:var(--r-md); cursor:pointer; font-weight:600; }
+    .confirm-all:hover:not(:disabled) { background:var(--accent); color:var(--text-on-accent); }
+    .confirm-all:disabled { opacity:0.5; cursor:default; }
 
-    .voice { display:flex; flex-direction:column; align-items:center; gap:var(--s-2); margin-bottom:var(--s-5); }
-    .mic { width:100%; max-width:18rem; padding:var(--s-4) var(--s-5); font-size:var(--fs-h3); font-weight:600; border:0; border-radius:var(--r-pill); background:var(--accent); color:var(--text-on-accent); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:var(--s-2); transition:background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); box-shadow:var(--shadow-md); }
-    .mic:hover:not(:disabled) { background:var(--accent-hover); }
-    .mic:active:not(:disabled) { transform:scale(0.98); }
-    .mic.listening { background:var(--danger); animation:pulse 1.4s ease-in-out infinite; }
-    .mic:disabled { opacity:0.7; cursor:default; }
-    .rec { width:0.8rem; height:0.8rem; background:#fff; border-radius:var(--r-pill); }
-    .spinner { width:1.2rem; height:1.2rem; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
-    .transcript { color:var(--text-secondary); font-style:italic; max-width:24rem; text-align:center; font-size:var(--fs-small); }
-    .reply { color:var(--success); font-size:var(--fs-small); }
-    .voice-controls { display:flex; flex-direction:column; align-items:center; gap:var(--s-2); }
-    .wake { display:flex; align-items:center; gap:var(--s-2); color:var(--text-tertiary); font-size:var(--fs-small); cursor:pointer; user-select:none; }
-    .wake input { accent-color:var(--accent); }
-    .voice-picker { color:var(--text-tertiary); font-size:var(--fs-small); }
-    .voice-picker summary { cursor:pointer; user-select:none; }
-    .picker-body { display:flex; gap:var(--s-2); margin-top:var(--s-2); align-items:center; }
-    .voice-picker select { padding:var(--s-1) var(--s-2); border-radius:var(--r-sm); border:1px solid var(--line-default); background:var(--bg-sunken); color:var(--text-primary); font-size:var(--fs-micro); max-width:14rem; }
-    .ghost.small { padding:var(--s-1) var(--s-3); font-size:var(--fs-micro); }
-    .wake-flash .mic { animation:wakeFlash 0.9s var(--ease-out); background:var(--gold); color:var(--text-on-accent); }
-    @keyframes wakeFlash {
-      0% { transform:scale(1); box-shadow:var(--shadow-md), 0 0 0 0 var(--gold-soft); }
-      40% { transform:scale(1.04); box-shadow:var(--shadow-md), 0 0 0 24px transparent; }
-      100% { transform:scale(1); box-shadow:var(--shadow-md), 0 0 0 0 transparent; }
-    }
-    @keyframes pulse { 0%,100% { box-shadow:var(--shadow-md), 0 0 0 0 var(--accent-soft); } 50% { box-shadow:var(--shadow-md), 0 0 0 16px transparent; } }
+    .cards { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:var(--s-2); }
+    .card { display:flex; gap:var(--s-3); align-items:flex-start; background:var(--bg-raised); border:1px solid var(--line-subtle); border-radius:var(--r-md); padding:var(--s-3) var(--s-4); box-shadow:var(--shadow-sm); transition:opacity var(--dur-fast) var(--ease-out); }
+    .card.skipped { opacity:0.4; }
+    .card.skipped .describe { text-decoration:line-through; }
+    .card-body { flex:1; min-width:0; }
+    .describe { margin:0; font-size:var(--fs-body); }
+    .reason { margin:var(--s-1) 0 0; color:var(--text-tertiary); font-size:var(--fs-small); font-style:italic; }
+    .card-actions { display:flex; gap:var(--s-2); align-items:center; }
+    .ghost.small { background:transparent; border:1px solid var(--line-default); color:var(--text-secondary); padding:var(--s-1) var(--s-3); font-size:var(--fs-small); border-radius:var(--r-md); cursor:pointer; }
+    .ghost.small:hover { border-color:var(--accent); color:var(--accent); }
+
+    .commit-btn { background:var(--accent); color:var(--text-on-accent); border:0; padding:var(--s-3) var(--s-5); font-size:var(--fs-body); font-weight:600; border-radius:var(--r-md); cursor:pointer; display:inline-flex; align-items:center; gap:var(--s-2); justify-content:center; }
+    .commit-btn:hover:not(:disabled) { background:var(--accent-hover); }
+    .commit-btn:disabled { opacity:0.5; cursor:default; }
+
+    .commit-result { color:var(--success); margin-top:var(--s-3); font-size:var(--fs-small); }
+    .commit-result .err { color:var(--danger); }
+    .error { color:var(--danger); margin-top:var(--s-3); font-size:var(--fs-small); }
+    .muted.small { color:var(--text-tertiary); font-size:var(--fs-small); }
+
+    @keyframes pulse { 0%,100% { box-shadow:0 0 0 0 var(--accent-soft); } 50% { box-shadow:0 0 0 10px transparent; } }
     @keyframes spin { to { transform:rotate(360deg); } }
   `],
 })
@@ -182,148 +257,185 @@ export class HomeComponent implements OnInit, OnDestroy {
   protected readonly lists = inject(ListService);
   protected readonly voice = inject(VoiceService);
   protected readonly theme = inject(ThemeService);
-  private readonly ai = inject(AiService);
+  private readonly events = inject(EventService);
+  private readonly routines = inject(RoutineService);
+  private readonly profiles = inject(ProfileService);
+  private readonly facts = inject(HouseholdFactsService);
+  private readonly contextNotes = inject(ContextNotesService);
+  private readonly brainDump = inject(BrainDumpService);
   private readonly router = inject(Router);
 
+  private readonly dumpInput = viewChild<ElementRef<HTMLTextAreaElement>>('dumpInput');
+
   draft = '';
-  readonly activeListId = signal<string | null>(null);
+  readonly stage = signal<Stage>('idle');
+  readonly result = signal<BrainDumpResult | null>(null);
+  readonly skipped = signal<Set<number>>(new Set());
   readonly error = signal<string | null>(null);
-  readonly aiBusy = signal(false);
-  readonly lastReply = signal<string | null>(null);
-  readonly wakeFlash = signal(false);
-  private flashTimer: ReturnType<typeof setTimeout> | null = null;
-  readonly activeItems = computed<ListItemRow[]>(() => {
-    const id = this.activeListId();
-    return id ? this.lists.itemsFor(id) : [];
-  });
-  readonly addPlaceholder = computed(() => {
-    const id = this.activeListId();
-    const list = this.lists.lists().find((l) => l.id === id);
-    return list ? `Add to ${list.name.toLowerCase()}…` : 'Add an item…';
-  });
+  readonly menuOpen = signal(false);
+  readonly lastSummary = signal<{ applied: number; errors: { index: number; message: string }[] } | null>(null);
 
-  constructor() {
-    // React to wake-word fires with a chime + visual flash.
-    effect(() => {
-      const n = this.voice.wakeCount();
-      if (n === 0) return;
-      this.voice.playChime();
-      this.wakeFlash.set(true);
-      if (this.flashTimer) clearTimeout(this.flashTimer);
-      this.flashTimer = setTimeout(() => this.wakeFlash.set(false), 900);
-    });
+  // Multi-turn: remember the prior turn so a follow-up answer keeps context.
+  private prior: { transcript: string; reply: string } | null = null;
+
+  placeholder(): string {
+    if (this.result()?.mode === 'follow_up') return 'Type your answer…';
+    return 'What\'s on your mind? Type or speak — to-dos, events, things to remember…';
   }
 
-  pickVoice(ev: Event): void {
-    const name = (ev.target as HTMLSelectElement).value || null;
-    this.voice.setVoice(name);
+  activeCount(): number {
+    const total = this.result()?.items.length ?? 0;
+    return total - this.skipped().size;
   }
 
-  async ngOnInit(): Promise<void> {
+  describe(item: BrainDumpItem): string {
+    return BrainDumpService.describe(item);
+  }
+
+  async ngOnInit() {
     try {
       const fam = this.family.family() ?? (await this.family.loadCurrent());
-      if (!fam) {
-        await this.router.navigateByUrl('/setup');
-        return;
-      }
-      const lists = await this.lists.loadLists(fam.id);
-      if (lists[0]) await this.selectList(lists[0].id);
+      if (!fam) { await this.router.navigateByUrl('/setup'); return; }
+      // Preload context so the first brain-dump call has a real lists+members+profiles set.
+      await Promise.all([
+        this.lists.loadLists(fam.id),
+        this.profiles.load(fam.id),
+      ]);
     } catch (e: any) {
-      this.error.set(e?.message ?? 'Could not load lists');
+      this.error.set(e?.message ?? 'Could not load household');
     }
   }
 
-  ngOnDestroy(): void {
+  ngOnDestroy() {
     this.lists.unsubscribe();
-    this.voice.stopWakeWord();
+    this.profiles.unsubscribe();
   }
 
-  async selectList(id: string): Promise<void> {
-    this.activeListId.set(id);
-    try {
-      await this.lists.loadItems(id);
-    } catch (e: any) {
-      this.error.set(e?.message ?? 'Could not load items');
-    }
-  }
+  toggleMenu() { this.menuOpen.update((v) => !v); }
 
-  async add(): Promise<void> {
-    const listId = this.activeListId();
-    const fam = this.family.family();
-    if (!listId || !fam) return;
-    const text = this.draft;
-    this.draft = '';
-    this.error.set(null);
-    try {
-      await this.lists.addItem(listId, text, fam.id, this.family.me()?.id ?? null);
-    } catch (e: any) {
-      this.draft = text;
-      this.error.set(e?.message ?? 'Could not add item');
-    }
-  }
-
-  async toggle(item: ListItemRow): Promise<void> {
-    try {
-      await this.lists.toggleItem(item);
-    } catch (e: any) {
-      this.error.set(e?.message ?? 'Could not update');
-    }
-  }
-
-  async remove(item: ListItemRow): Promise<void> {
-    try {
-      await this.lists.removeItem(item.id);
-    } catch (e: any) {
-      this.error.set(e?.message ?? 'Could not remove');
-    }
-  }
-
-  async toggleMic(): Promise<void> {
+  async toggleMic() {
     if (this.voice.listening()) { this.voice.stop(); return; }
     try {
       const transcript = await this.voice.start();
-      await this.handleCommand(transcript);
+      if (transcript) {
+        this.draft = this.draft ? `${this.draft.trimEnd()} ${transcript}` : transcript;
+      }
     } catch (e: any) {
-      this.error.set(e?.message ?? 'Voice command failed');
+      this.error.set(e?.message ?? 'Voice failed');
     }
   }
 
-  toggleWake(): void {
-    if (this.voice.wakeArmed()) { this.voice.stopWakeWord(); return; }
-    this.voice.startWakeWord((command) => void this.handleCommand(command));
-  }
-
-  private async handleCommand(transcript: string): Promise<void> {
+  async submit() {
+    const transcript = this.draft.trim();
     if (!transcript) return;
     const fam = this.family.family();
     if (!fam) return;
+
     this.error.set(null);
-    this.lastReply.set(null);
-    this.aiBusy.set(true);
+    this.lastSummary.set(null);
+    this.stage.set('parsing');
+
     try {
-      const res = await this.ai.runIntent({
-        transcript,
-        family_id: fam.id,
-        surface: 'portal',
-        member_id: this.family.me()?.id ?? null,
-      });
-      for (const intent of res.intents) {
-        if (intent.action === 'view.show_list' && intent.resolved_list_id) {
-          await this.selectList(intent.resolved_list_id);
-        }
+      const ctx: BrainDumpContext = {
+        familyId: fam.id,
+        familyName: fam.name,
+        timezone: (fam as any).timezone ?? undefined,
+        memberId: this.family.me()?.id ?? null,
+        lists: this.lists.lists().map((l) => ({ id: l.id, name: l.name })),
+        members: this.family.members().map((m) => ({ id: m.id, display_name: m.display_name })),
+        profiles: this.profiles.profiles().map((p) => ({ id: p.id, name: p.name, kind: p.kind })),
+        snapshot: {
+          items: this.lists
+            .items()
+            .map((it) => ({
+              list_name: this.lists.lists().find((l) => l.id === it.list_id)?.name ?? '',
+              text: it.text,
+              checked: it.checked,
+            })),
+        },
+        prior: this.prior ?? undefined,
+      };
+
+      const parsed = await this.brainDump.parse(transcript, ctx);
+      this.result.set(parsed);
+      this.skipped.set(new Set());
+
+      // For follow-up, remember THIS turn; for query/capture, the dialog ends after commit/answer.
+      if (parsed.mode === 'follow_up') {
+        this.prior = { transcript, reply: parsed.reply };
+      } else {
+        this.prior = null;
       }
-      this.lastReply.set(res.spoken_reply);
-      this.voice.speak(res.spoken_reply);
-      setTimeout(() => this.lastReply.set(null), 4000);
+
+      this.draft = '';
+      this.stage.set(parsed.mode === 'capture' ? 'review' : 'idle');
+      // Refocus the input for fast follow-on capture.
+      queueMicrotask(() => this.dumpInput()?.nativeElement.focus());
     } catch (e: any) {
-      this.error.set(e?.message ?? 'Voice command failed');
-    } finally {
-      this.aiBusy.set(false);
+      this.error.set(e?.message ?? 'Could not parse');
+      this.stage.set('idle');
     }
   }
 
-  async signOut(): Promise<void> {
+  skip(i: number) {
+    this.skipped.update((set) => {
+      const next = new Set(set);
+      next.add(i);
+      return next;
+    });
+  }
+
+  unskip(i: number) {
+    this.skipped.update((set) => {
+      const next = new Set(set);
+      next.delete(i);
+      return next;
+    });
+  }
+
+  confirmAll() { void this.commit(); }
+
+  async commit() {
+    const result = this.result();
+    const fam = this.family.family();
+    if (!result || !fam) return;
+
+    this.stage.set('committing');
+    this.error.set(null);
+
+    const decisions = result.items.map((_item, i) =>
+      this.skipped().has(i) ? { action: 'skip' as const } : { action: 'confirm' as const },
+    );
+
+    try {
+      const summary = await this.brainDump.execute(result.items, decisions, {
+        familyId: fam.id,
+        memberId: this.family.me()?.id ?? null,
+      });
+      this.lastSummary.set({ applied: summary.applied, errors: summary.errors });
+      if (summary.errors.length) {
+        this.error.set(`${summary.errors.length} item(s) failed: ${summary.errors[0].message}`);
+      }
+      // Clear conversational state — capture flow is one-and-done per §2.1.1.
+      this.reset();
+    } catch (e: any) {
+      this.error.set(e?.message ?? 'Could not save');
+    } finally {
+      this.stage.set('idle');
+    }
+  }
+
+  reset() {
+    this.result.set(null);
+    this.skipped.set(new Set());
+    this.prior = null;
+    this.stage.set('idle');
+  }
+
+  async signOut() {
+    this.menuOpen.set(false);
     this.lists.unsubscribe();
+    this.profiles.unsubscribe();
     await this.auth.signOut();
     await this.router.navigateByUrl('/sign-in');
   }
