@@ -28,6 +28,18 @@ export const routes: Routes = [
       import('./household-facts/household-facts.component').then((m) => m.HouseholdFactsComponent),
   },
   {
+    path: 'profiles',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./profiles/profiles.component').then((m) => m.ProfilesComponent),
+  },
+  {
+    path: 'context',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./context-notes/context-notes.component').then((m) => m.ContextNotesComponent),
+  },
+  {
     path: 'calendar',
     canActivate: [authGuard],
     loadComponent: () => import('./calendar/calendar.component').then((m) => m.CalendarComponent),

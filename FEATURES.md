@@ -453,7 +453,7 @@ Most of a planning meeting isn't action items — it's emotional processing, jok
 - **Does include** a brief neutral summary of non-actionable parts in the meeting summary ("you also talked about how draining last week felt")
 - **May propose Weekly Context Notes** (see below) when emotional/situational context would genuinely improve briefing tone
 
-#### 4.6.1 Weekly Context Notes (Ephemeral Context)  *[schema + reaper landed, surfacing pending]*
+#### 4.6.1 Weekly Context Notes (Ephemeral Context)  *[schema + service + portal CRUD landed; briefing-side surfacing pending Phase 2; reaper still needs pg_cron schedule]*
 
 A separate primitive that captures **time-bounded situational context** to inform briefing tone. Different from household facts (permanent) and different from briefings (regenerated content).
 

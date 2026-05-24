@@ -1,0 +1,85 @@
+<main class="wrap">
+  <header>
+    <a routerLink="/" class="back" aria-label="Back to home">←</a>
+    <h1>Context notes</h1>
+  </header>
+
+  <p class="lede">
+    Short-lived context for the assistant — "big presentation Friday", "in-laws
+    staying this week, don't mention X", "hard week, keep tone gentle".
+    Tone-layer only: notes shape <em>how</em> the briefing reads, never auto-create tasks.
+  </p>
+  <p class="lede caution">
+    Every note expires automatically — maximum 30 days. After that it's deleted
+    (not archived), so the assistant can't build a long-term emotional record.
+  </p>
+
+  <section class="add-section">
+    @if (!adding()) {
+      <button class="add-btn" (click)="startAdd()">+ Add context note</button>
+    } @else {
+      <form class="editor" (submit)="$event.preventDefault(); save()">
+        <h3>New context note</h3>
+        <label>
+          What's going on?
+          <textarea [(ngModel)]="draft.content" name="content" rows="3"
+                    placeholder="e.g. Friday presentation, wish luck in Friday morning briefing"
+                    required></textarea>
+        </label>
+        <label>
+          Type
+          <select [(ngModel)]="draft.type" name="type">
+            <option value="situational">Situational (in-laws visiting, spouse traveling)</option>
+            <option value="emotional">Emotional (hard week, drained)</option>
+            <option value="celebration">Celebration (big win, milestone)</option>
+            <option value="privacy_restriction">Privacy restriction (suppress topics)</option>
+          </select>
+        </label>
+        <label>
+          Expires
+          <input type="date" [(ngModel)]="draft.expiresOn" name="expires" [max]="maxExpiry" required />
+          <span class="hint inline">Max 30 days from today ({{ maxExpiry }}).</span>
+        </label>
+        @if (draft.type === 'privacy_restriction') {
+          <label>
+            Topics to suppress (comma-separated)
+            <input type="text" [(ngModel)]="draft.suppressTopics" name="suppress"
+                   placeholder="e.g. bills, money, work stress" />
+            <span class="hint inline">These topics get omitted from briefings during the active window.</span>
+          </label>
+        }
+        <div class="actions">
+          <button type="button" class="ghost" (click)="cancel()">Cancel</button>
+          <button type="submit" class="primary" [disabled]="busy()">
+            @if (busy()) { Saving… } @else { Save }
+          </button>
+        </div>
+        @if (error(); as e) { <p class="error">{{ e }}</p> }
+      </form>
+    }
+  </section>
+
+  @if (notes.notes().length === 0) {
+    <p class="empty">No active context notes. Add one for the next week — or skip this and let briefings stay neutral.</p>
+  } @else {
+    <ul class="note-list">
+      @for (n of notes.notes(); track n.id) {
+        <li class="note" [class]="'type-' + n.type">
+          <div class="head">
+            <span class="badge">{{ n.type | titlecase }}</span>
+            <span class="expires">expires {{ n.expires_at | date:'mediumDate' }} ({{ relativeUntil(n.expires_at) }})</span>
+          </div>
+          <p class="content">{{ n.content }}</p>
+          @if (n.suppress_topics?.length) {
+            <p class="suppress">Suppress: {{ n.suppress_topics.join(', ') }}</p>
+          }
+          <div class="actions">
+            <button class="danger small" (click)="remove(n.id)">Delete</button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (loadError(); as e) { <p class="error">{{ e }}</p> }
+</main>

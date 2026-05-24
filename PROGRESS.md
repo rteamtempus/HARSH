@@ -61,17 +61,17 @@ These shipped in the initial scaffold (commit `143841e`):
   - [x] Schema (`household_facts`)
   - [x] [HouseholdFactsService](projects/data-access/src/lib/household-facts.service.ts) with upsert-by-key + ILIKE search for RAG retrieval
   - [x] Portal CRUD UI at [/facts](projects/portal/src/app/household-facts/household-facts.component.ts) — search + categorize + edit value (key is immutable)
-- [~] Profile model + polymorphic `assignee` on items/events/routines
+- [x] Profile model + polymorphic `assignee` on items/events/routines
   - [x] `profiles` table + `assignee_member_id`/`assignee_profile_id` on `list_items` and `routines`
-  - [x] `assignee_profile_id` on `events` ([20260524020000](supabase/migrations/20260524020000_routine_actions_and_events_assignee.sql))
+  - [x] `assignee_profile_id` on `events`
   - [x] [ProfileService](projects/data-access/src/lib/profile.service.ts)
-  - [ ] Portal CRUD for profiles
-- [~] Weekly Context Notes — **data + service + reaper landed, UI pending; reaper schedule pending**
+  - [x] Portal CRUD at [/profiles](projects/portal/src/app/profiles/profiles.component.ts)
+- [~] Weekly Context Notes — **data + service + UI landed; reaper schedule still pending**
   - [x] Schema with `expires_at` (max 30 days, enforced via check constraint)
   - [x] [ContextNotesService](projects/data-access/src/lib/context-notes.service.ts) with client-side duration clamping
   - [x] Auto-delete RPC `reap_expired_context_notes()`
   - [ ] **Schedule the reaper via pg_cron** (in DEV_SETUP.md infra checklist)
-  - [ ] Portal CRUD screen in hamburger menu
+  - [x] Portal CRUD at [/context](projects/portal/src/app/context-notes/context-notes.component.ts)
 - [x] Mobile UI redesign with **brain dump home page** (replaces current home)
   - [x] Single text input + transcription toggle ([home.ts](projects/portal/src/app/home/home.ts))
   - [x] Multi-turn via `follow_up` mode; context cleared on commit / fresh query

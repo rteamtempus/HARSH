@@ -1,0 +1,75 @@
+<main class="wrap">
+  <header>
+    <a routerLink="/" class="back" aria-label="Back to home">←</a>
+    <h1>People &amp; pets</h1>
+  </header>
+
+  <p class="lede">
+    Non-login household members — kids, pets, anyone you want to plan around but
+    who doesn't sign in. The assistant uses these to disambiguate "who has [kid]
+    today" and to attach routines / events to the right person.
+  </p>
+
+  <section class="add-section">
+    @if (!editing()) {
+      <button class="add-btn" (click)="startAdd()">+ Add person or pet</button>
+    } @else {
+      <form class="editor" (submit)="$event.preventDefault(); save()">
+        <h3>{{ draft.id ? 'Edit' : 'New profile' }}</h3>
+        <label>
+          Name
+          <input type="text" [(ngModel)]="draft.name" name="name" required />
+        </label>
+        <label>
+          Kind
+          <select [(ngModel)]="draft.kind" name="kind">
+            <option value="child">Child</option>
+            <option value="pet">Pet</option>
+            <option value="dependent">Dependent</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label>
+          Color
+          <div class="swatches">
+            @for (c of colors; track c) {
+              <button type="button" class="swatch" [class.picked]="draft.color === c"
+                      [style.background]="c" (click)="draft.color = c"
+                      [attr.aria-label]="c"></button>
+            }
+            <input type="color" [(ngModel)]="draft.color" name="color" />
+          </div>
+        </label>
+        <div class="actions">
+          @if (draft.id) {
+            <button type="button" class="danger" (click)="remove(draft.id)">Delete</button>
+          }
+          <button type="button" class="ghost" (click)="cancel()">Cancel</button>
+          <button type="submit" class="primary" [disabled]="busy()">
+            @if (busy()) { Saving… } @else { Save }
+          </button>
+        </div>
+        @if (error(); as e) { <p class="error">{{ e }}</p> }
+      </form>
+    }
+  </section>
+
+  @if (profiles.profiles().length === 0) {
+    <p class="empty">No profiles yet. Add the kids and pets you want the assistant to plan around.</p>
+  } @else {
+    <ul class="profile-list">
+      @for (p of profiles.profiles(); track p.id) {
+        <li class="profile">
+          <span class="dot" [style.background]="p.color"></span>
+          <div class="meta">
+            <strong>{{ p.name }}</strong>
+            <span class="sub">{{ p.kind }}</span>
+          </div>
+          <button class="ghost small" (click)="startEdit(p)">Edit</button>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (loadError(); as e) { <p class="error">{{ e }}</p> }
+</main>
