@@ -121,11 +121,14 @@ These shipped in the initial scaffold (commit `143841e`):
 
 ## Phase 4 — Meeting scribe
 
-- [ ] Audio capture (mobile, with marker tagging)
-- [ ] Background transcription pipeline
-- [ ] Multi-domain extraction (lists, events, routines, facts, context notes, open questions)
-- [ ] Review + commit flow with speaker-based assignment (diarization)
-- [ ] Searchable meeting artifact (`meeting_notes` + summary)
+- [x] Audio capture (mobile, with marker tagging) — [meeting.component.ts](projects/portal/src/app/meeting/meeting.component.ts) wraps MediaRecorder with pause/resume/marker/end.
+- [x] Background transcription pipeline — [transcribe-meeting](supabase/functions/transcribe-meeting/index.ts) downloads audio, sends to Gemini 2.5 Flash inline (≤19MB cap), persists diarized segments.
+- [x] Multi-domain extraction — [extract-meeting](supabase/functions/extract-meeting/index.ts) emits BrainDumpItem[] proposals + open_questions + ai_summary. Reuses brain-dump schema so the same executor commits everything.
+- [x] Review + commit flow ([meeting-review.component.ts](projects/portal/src/app/meeting/meeting-review.component.ts)) — grouped by type, per-item / group / master actions, commit via BrainDumpService.execute().
+- [x] Searchable meeting artifact — [meeting_notes](supabase/migrations/20260524060000_meeting_scribe.sql) keeps transcript + summary + open questions indefinitely; audio deleted by extract-meeting after success (privacy posture §4.6).
+- [~] Speaker-based assignment — diarization labels arrive in `transcript_segments.speaker_label`; assignment-to-User during review is not yet wired.
+- [ ] 24-hour forgotten-review notification + persistent briefing mention
+- [ ] Local Whisper migration (Phase 5; current cap is Gemini's 19MB inline ≈ 25 min)
 
 ## Phase 5 — Polish
 

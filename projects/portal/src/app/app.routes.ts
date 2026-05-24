@@ -46,6 +46,18 @@ export const routes: Routes = [
       import('./briefing/briefing.component').then((m) => m.BriefingComponent),
   },
   {
+    path: 'meeting',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./meeting/meeting.component').then((m) => m.MeetingComponent),
+  },
+  {
+    path: 'meeting/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./meeting/meeting-review.component').then((m) => m.MeetingReviewComponent),
+  },
+  {
     path: 'calendar',
     canActivate: [authGuard],
     loadComponent: () => import('./calendar/calendar.component').then((m) => m.CalendarComponent),

@@ -1,0 +1,107 @@
+<main class="wrap">
+  <header>
+    <a routerLink="/meeting" class="back">← Meetings</a>
+    <h1>Review meeting</h1>
+  </header>
+
+  @if (meeting(); as m) {
+    <p class="when">{{ m.recorded_at | date:'EEEE, MMM d · h:mma' }} · {{ statusLabel(m.status) }}</p>
+
+    @if (m.ai_summary) {
+      <section class="summary">
+        <h2>Summary</h2>
+        <p>{{ m.ai_summary }}</p>
+      </section>
+    }
+
+    @if (m.open_questions?.length) {
+      <section class="questions">
+        <h2>Open questions</h2>
+        <p class="hint">Things you discussed but didn't decide. Not saved as tasks — flagged so they don't fall through.</p>
+        <ul>
+          @for (q of m.open_questions; track q) { <li>{{ q }}</li> }
+        </ul>
+      </section>
+    }
+
+    @if (m.status === 'committed') {
+      <section class="committed-note">
+        <p>This meeting was committed {{ m.committed_at | date:'short' }}. Items are already in your lists, calendar, and routines.</p>
+      </section>
+    }
+
+    @if (proposals().length === 0) {
+      @if (m.status !== 'committed') {
+        <p class="empty">No proposals were extracted. Either the meeting had no actionable items, or extraction failed.</p>
+      }
+    } @else if (m.status !== 'committed') {
+      <section class="review">
+        <header class="review-head">
+          <h2>Proposals ({{ activeCount() }} active · {{ proposals().length }} total)</h2>
+          <div class="head-actions">
+            <button class="ghost small" (click)="confirmAll()" [disabled]="commitBusy()">Confirm all</button>
+            <button class="ghost small" (click)="skipAll()" [disabled]="commitBusy()">Skip all</button>
+          </div>
+        </header>
+
+        @for (group of grouped(); track group.label) {
+          <article class="group">
+            <header class="group-head">
+              <h3>{{ group.label }} ({{ group.items.length }})</h3>
+              <div class="group-actions">
+                <button class="link" (click)="confirmGroup(group.indices)">Confirm group</button>
+                <button class="link" (click)="skipGroup(group.indices)">Skip group</button>
+              </div>
+            </header>
+            <ul class="cards">
+              @for (entry of group.items; track entry.index) {
+                <li class="card" [class.skipped]="skipped().has(entry.index)">
+                  <div class="card-body">
+                    <p class="describe">{{ describe(entry.item) }}</p>
+                    @if (entry.item.reasoning) {
+                      <p class="reason">“{{ entry.item.reasoning }}”</p>
+                    }
+                  </div>
+                  <div class="card-actions">
+                    @if (skipped().has(entry.index)) {
+                      <button class="link" (click)="unskip(entry.index)">Bring back</button>
+                    } @else {
+                      <button class="link" (click)="skip(entry.index)">Skip</button>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          </article>
+        }
+
+        <div class="commit-bar">
+          <button class="commit" (click)="commit()" [disabled]="commitBusy() || activeCount() === 0">
+            @if (commitBusy()) { Saving… }
+            @else { Save {{ activeCount() }} {{ activeCount() === 1 ? 'item' : 'items' }} }
+          </button>
+        </div>
+      </section>
+    }
+
+    @if (commitResult(); as r) {
+      <p class="commit-result">
+        Saved {{ r.applied }} {{ r.applied === 1 ? 'item' : 'items' }}.
+        @if (r.errors > 0) { <span class="err"> {{ r.errors }} failed.</span> }
+      </p>
+    }
+
+    @if (m.transcript) {
+      <details class="transcript">
+        <summary>Transcript</summary>
+        <pre>{{ m.transcript }}</pre>
+      </details>
+    }
+  } @else if (loading()) {
+    <p class="empty">Loading…</p>
+  } @else {
+    <p class="empty">Meeting not found.</p>
+  }
+
+  @if (error(); as e) { <p class="error">{{ e }}</p> }
+</main>

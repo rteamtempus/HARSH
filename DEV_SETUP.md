@@ -22,6 +22,8 @@ Last updated: 2026-05-24
   - [ ] `npx supabase functions deploy tts` (voice synthesis)
   - [ ] `npx supabase functions deploy generate-briefing` (daily/weekly/monthly briefings)
   - [ ] `npx supabase functions deploy tick-briefings` (cron orchestrator)
+  - [ ] `npx supabase functions deploy transcribe-meeting` (meeting audio → transcript)
+  - [ ] `npx supabase functions deploy extract-meeting` (transcript → proposals)
 - [ ] Schedule the context-note reaper (`reap_expired_context_notes()`) via pg_cron — see below
 - [ ] Schedule briefing regeneration via pg_cron — 6am / 12pm / 4:30pm / 7:30pm per FEATURES.md §4.5
 

@@ -1,0 +1,58 @@
+:host { display:block; min-height:100dvh; background:var(--bg-canvas); color:var(--text-primary); }
+.wrap { max-width:42rem; margin:0 auto; padding:var(--s-6) var(--s-5) var(--s-8); }
+header { display:flex; align-items:center; gap:var(--s-3); margin-bottom:var(--s-3); }
+h1 { margin:0; font-family:var(--font-display); font-size:var(--fs-h1); }
+.back { color:var(--text-tertiary); text-decoration:none; font-size:var(--fs-small); }
+.back:hover { color:var(--accent); }
+
+.when { color:var(--text-tertiary); margin:0 0 var(--s-5); font-size:var(--fs-small); }
+
+section { margin-bottom:var(--s-5); }
+section h2 { font-family:var(--font-display); font-size:var(--fs-h2); margin:0 0 var(--s-2); }
+
+.summary p { margin:0; line-height:1.5; }
+
+.questions { background:var(--bg-surface); border-left:3px solid var(--gold, #d9a85a); border-radius:var(--r-md); padding:var(--s-3) var(--s-4); }
+.questions p.hint { color:var(--text-tertiary); font-size:var(--fs-small); margin:0 0 var(--s-2); }
+.questions ul { margin:0; padding-left:var(--s-5); }
+.questions li { margin:var(--s-1) 0; }
+
+.committed-note { background:var(--bg-surface); border-left:3px solid var(--success); border-radius:var(--r-md); padding:var(--s-3) var(--s-4); }
+.committed-note p { margin:0; color:var(--text-secondary); }
+
+.review-head { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:var(--s-2); margin-bottom:var(--s-3); }
+.head-actions { display:flex; gap:var(--s-2); }
+.ghost.small { background:transparent; border:1px solid var(--line-default); color:var(--text-primary); padding:var(--s-1) var(--s-3); border-radius:var(--r-md); cursor:pointer; font-size:var(--fs-small); }
+.ghost.small:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+.ghost.small:disabled { opacity:0.5; cursor:default; }
+
+.group { margin-bottom:var(--s-4); }
+.group-head { display:flex; justify-content:space-between; align-items:baseline; gap:var(--s-2); margin-bottom:var(--s-2); padding-bottom:var(--s-1); border-bottom:1px solid var(--line-subtle); }
+.group-head h3 { font-family:var(--font-sans); font-size:var(--fs-small); color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin:0; }
+.group-actions { display:flex; gap:var(--s-3); }
+.link { background:none; border:0; padding:0; color:var(--accent); cursor:pointer; font-size:var(--fs-small); text-decoration:underline; }
+.link:hover { color:var(--accent-hover); }
+
+.cards { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:var(--s-2); }
+.card { display:flex; gap:var(--s-3); align-items:flex-start; background:var(--bg-raised); border:1px solid var(--line-subtle); border-radius:var(--r-md); padding:var(--s-3) var(--s-4); }
+.card.skipped { opacity:0.4; }
+.card.skipped .describe { text-decoration:line-through; }
+.card-body { flex:1; min-width:0; }
+.describe { margin:0; font-size:var(--fs-body); }
+.reason { margin:var(--s-1) 0 0; color:var(--text-tertiary); font-size:var(--fs-small); font-style:italic; }
+.card-actions { display:flex; gap:var(--s-2); align-items:center; }
+
+.commit-bar { margin-top:var(--s-4); display:flex; justify-content:flex-end; }
+.commit { background:var(--accent); color:var(--text-on-accent); border:0; padding:var(--s-3) var(--s-5); border-radius:var(--r-md); cursor:pointer; font-weight:600; font-size:var(--fs-body); }
+.commit:hover:not(:disabled) { background:var(--accent-hover); }
+.commit:disabled { opacity:0.5; cursor:default; }
+
+.commit-result { color:var(--success); font-size:var(--fs-small); margin-top:var(--s-3); }
+.commit-result .err { color:var(--danger); }
+
+.transcript { margin-top:var(--s-6); background:var(--bg-surface); border:1px solid var(--line-subtle); border-radius:var(--r-md); padding:var(--s-3) var(--s-4); }
+.transcript summary { cursor:pointer; color:var(--text-secondary); font-size:var(--fs-small); }
+.transcript pre { margin:var(--s-3) 0 0; white-space:pre-wrap; word-break:break-word; font-family:var(--font-mono); font-size:var(--fs-small); color:var(--text-secondary); max-height:24rem; overflow-y:auto; }
+
+.empty { color:var(--text-tertiary); font-style:italic; padding:var(--s-5) 0; text-align:center; }
+.error { color:var(--danger); margin-top:var(--s-3); font-size:var(--fs-small); }

@@ -1,0 +1,89 @@
+<main class="wrap">
+  <header>
+    <a routerLink="/" class="back" aria-label="Back to home">←</a>
+    <h1>Weekly meeting</h1>
+  </header>
+
+  <p class="lede">
+    Sit down with your spouse, hit record, talk through the week. The assistant
+    transcribes, pulls out proposed to-dos / events / routine changes, and
+    shows you everything in one screen to confirm — nothing saves without your OK.
+  </p>
+
+  @if (recordError(); as e) { <p class="error">{{ e }}</p> }
+
+  <!-- Recording surface -->
+  <section class="record-card" [class.active]="recording()">
+    @if (!recording() && !paused()) {
+      <button class="record-btn" (click)="start()" [disabled]="busy()">
+        <span class="dot"></span> Record meeting
+      </button>
+      <p class="hint">Place your phone between speakers. Tap end when you're done.</p>
+    } @else {
+      <div class="recording">
+        <div class="elapsed">{{ elapsedLabel() }}</div>
+        <div class="indicators">
+          @if (paused()) {
+            <span class="status paused">⏸ Paused</span>
+          } @else {
+            <span class="status live"><span class="live-dot"></span> Recording</span>
+          }
+          <span class="markers-count">
+            @if (markers().length === 0) { no markers }
+            @else if (markers().length === 1) { 1 marker }
+            @else { {{ markers().length }} markers }
+          </span>
+        </div>
+        <div class="actions">
+          @if (paused()) {
+            <button class="ghost" (click)="resume()">Resume</button>
+          } @else {
+            <button class="ghost" (click)="pause()">Pause</button>
+            <button class="marker" (click)="dropMarker()">⚐ Marker</button>
+          }
+          <button class="end" (click)="end()" [disabled]="busy()">
+            @if (busy()) { Saving… } @else { End }
+          </button>
+        </div>
+      </div>
+    }
+  </section>
+
+  <h2>Meetings</h2>
+  @if (service.meetings().length === 0) {
+    <p class="empty">No meetings yet. The first one's just a button-press away.</p>
+  } @else {
+    <ul class="meeting-list">
+      @for (m of service.meetings(); track m.id) {
+        <li class="meeting">
+          <div class="meta">
+            <strong>{{ m.recorded_at | date:'EEEE, MMM d · h:mma' }}</strong>
+            <span class="sub">
+              {{ statusLabel(m.status) }}
+              @if (m.duration_seconds) { · {{ durationLabel(m.duration_seconds) }} }
+              @if (m.proposals && asProposals(m).length) { · {{ asProposals(m).length }} proposals }
+            </span>
+            @if (m.status === 'failed' && m.error_message) {
+              <span class="err-msg">⚠ {{ m.error_message }}</span>
+            }
+          </div>
+          <div class="row-actions">
+            @if (m.status === 'uploaded') {
+              <button class="primary small" (click)="transcribe(m.id)">Transcribe</button>
+            }
+            @if (m.status === 'transcribed') {
+              <button class="primary small" (click)="extract(m.id)">Extract proposals</button>
+            }
+            @if (m.status === 'ready_for_review') {
+              <a class="primary small" [routerLink]="['/meeting', m.id]">Review</a>
+            }
+            @if (m.status === 'committed') {
+              <a class="ghost small" [routerLink]="['/meeting', m.id]">View</a>
+            }
+            <button class="danger small" (click)="remove(m.id)">Delete</button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</main>

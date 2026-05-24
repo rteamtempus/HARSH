@@ -573,6 +573,78 @@ export type Database = {
           },
         ]
       }
+      meeting_notes: {
+        Row: {
+          ai_summary: string | null
+          audio_path: string | null
+          committed_at: string | null
+          created_at: string
+          created_by_member_id: string | null
+          duration_seconds: number | null
+          error_message: string | null
+          family_id: string
+          id: string
+          markers: Json
+          open_questions: string[]
+          proposals: Json
+          recorded_at: string
+          status: Database["public"]["Enums"]["meeting_status"]
+          transcript: string | null
+          transcript_segments: Json | null
+        }
+        Insert: {
+          ai_summary?: string | null
+          audio_path?: string | null
+          committed_at?: string | null
+          created_at?: string
+          created_by_member_id?: string | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          family_id: string
+          id?: string
+          markers?: Json
+          open_questions?: string[]
+          proposals?: Json
+          recorded_at?: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          transcript?: string | null
+          transcript_segments?: Json | null
+        }
+        Update: {
+          ai_summary?: string | null
+          audio_path?: string | null
+          committed_at?: string | null
+          created_at?: string
+          created_by_member_id?: string | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          family_id?: string
+          id?: string
+          markers?: Json
+          open_questions?: string[]
+          proposals?: Json
+          recorded_at?: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          transcript?: string | null
+          transcript_segments?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_notes_created_by_member_id_fkey"
+            columns: ["created_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_notes_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           body: string
@@ -1130,6 +1202,15 @@ export type Database = {
       event_source: "manual" | "gcal" | "icloud" | "ics" | "caldav" | "voice"
       family_member_role: "owner" | "adult" | "kid"
       list_kind: "grocery" | "todo" | "custom"
+      meeting_status:
+        | "recording"
+        | "uploaded"
+        | "transcribing"
+        | "transcribed"
+        | "extracting"
+        | "ready_for_review"
+        | "committed"
+        | "failed"
       nag_level: "passive" | "surface" | "assertive"
       profile_kind: "child" | "pet" | "dependent" | "other"
       routine_cadence_type: "calendar" | "interval"
@@ -1277,6 +1358,16 @@ export const Constants = {
       event_source: ["manual", "gcal", "icloud", "ics", "caldav", "voice"],
       family_member_role: ["owner", "adult", "kid"],
       list_kind: ["grocery", "todo", "custom"],
+      meeting_status: [
+        "recording",
+        "uploaded",
+        "transcribing",
+        "transcribed",
+        "extracting",
+        "ready_for_review",
+        "committed",
+        "failed",
+      ],
       nag_level: ["passive", "surface", "assertive"],
       profile_kind: ["child", "pet", "dependent", "other"],
       routine_cadence_type: ["calendar", "interval"],
