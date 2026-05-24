@@ -4,43 +4,43 @@ import { authGuard } from './auth.guard';
 export const routes: Routes = [
   {
     path: 'sign-in',
-    loadComponent: () => import('./sign-in/sign-in').then((m) => m.SignInComponent),
+    loadComponent: () => import('./sign-in/sign-in.component').then((m) => m.SignInComponent),
   },
   {
     path: 'setup',
     canActivate: [authGuard],
-    loadComponent: () => import('./setup/setup').then((m) => m.SetupComponent),
+    loadComponent: () => import('./setup/setup.component').then((m) => m.SetupComponent),
   },
   {
     path: 'lists',
     canActivate: [authGuard],
-    loadComponent: () => import('./lists/lists').then((m) => m.ListsComponent),
+    loadComponent: () => import('./lists/lists.component').then((m) => m.ListsComponent),
   },
   {
     path: 'calendar',
     canActivate: [authGuard],
-    loadComponent: () => import('./calendar/calendar').then((m) => m.CalendarComponent),
+    loadComponent: () => import('./calendar/calendar.component').then((m) => m.CalendarComponent),
   },
   {
     path: 'settings',
     canActivate: [authGuard],
-    loadComponent: () => import('./settings/settings').then((m) => m.SettingsComponent),
+    loadComponent: () => import('./settings/settings.component').then((m) => m.SettingsComponent),
   },
   {
     path: 'help',
     canActivate: [authGuard],
-    loadComponent: () => import('./help/help').then((m) => m.HelpComponent),
+    loadComponent: () => import('./help/help.component').then((m) => m.HelpComponent),
   },
   {
     path: 'release-notes',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./release-notes/release-notes').then((m) => m.ReleaseNotesComponent),
+      import('./release-notes/release-notes.component').then((m) => m.ReleaseNotesComponent),
   },
   {
     path: '',
     canActivate: [authGuard],
-    loadComponent: () => import('./home/home').then((m) => m.HomeComponent),
+    loadComponent: () => import('./home/home.component').then((m) => m.HomeComponent),
   },
   { path: '**', redirectTo: '' },
 ];

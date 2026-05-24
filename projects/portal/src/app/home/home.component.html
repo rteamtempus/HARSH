@@ -1,0 +1,140 @@
+<main class="wrap">
+  <header>
+    <div class="brand">
+      <h1>{{ family.family()?.name ?? 'HARSH' }}</h1>
+      <p class="who">{{ auth.user()?.email }}</p>
+    </div>
+    <button class="hamburger" (click)="toggleMenu()" aria-label="Menu">☰</button>
+  </header>
+
+  @if (menuOpen()) {
+    <div class="menu-backdrop" (click)="menuOpen.set(false)"></div>
+    <nav class="menu" aria-label="Main menu">
+      <a routerLink="/lists" (click)="menuOpen.set(false)">Lists</a>
+      <a routerLink="/calendar" (click)="menuOpen.set(false)">Calendar</a>
+      <a routerLink="/settings" (click)="menuOpen.set(false)">Settings</a>
+      <a routerLink="/help" (click)="menuOpen.set(false)">How to use</a>
+      <a routerLink="/release-notes" (click)="menuOpen.set(false)">What's new</a>
+      <button class="theme-toggle" (click)="theme.toggleMode()">
+        {{ theme.state().mode === 'dark' ? '☀ Light mode' : '☾ Dark mode' }}
+      </button>
+      <button class="sign-out" (click)="signOut()">Sign out</button>
+    </nav>
+  }
+
+  <section class="dump-card">
+    <textarea
+      #dumpInput
+      class="dump-input"
+      [(ngModel)]="draft"
+      name="draft"
+      [placeholder]="placeholder()"
+      rows="5"
+      autocomplete="off"
+      [disabled]="stage() === 'parsing' || stage() === 'committing'"
+      (keydown.meta.enter)="$event.preventDefault(); submit()"
+      (keydown.control.enter)="$event.preventDefault(); submit()"
+    ></textarea>
+
+    <div class="dump-actions">
+      @if (voice.supported()) {
+        <button
+          type="button"
+          class="mic"
+          [class.listening]="voice.listening()"
+          (click)="toggleMic()"
+          [attr.aria-label]="voice.listening() ? 'Stop transcribing' : 'Start transcribing'"
+        >
+          @if (voice.listening()) { <span class="rec"></span> Listening… }
+          @else { 🎤 Speak }
+        </button>
+      }
+      <button
+        type="button"
+        class="submit"
+        (click)="submit()"
+        [disabled]="!draft.trim() || stage() === 'parsing' || stage() === 'committing'"
+      >
+        @if (stage() === 'parsing') { <span class="spinner"></span> Parsing… }
+        @else { Send }
+      </button>
+    </div>
+
+    @if (voice.listening() && voice.transcript()) {
+      <p class="transcript">{{ voice.transcript() }}</p>
+    }
+  </section>
+
+  @if (result(); as r) {
+    @switch (r.mode) {
+      @case ('query') {
+        <section class="reply">
+          <p>{{ r.reply }}</p>
+          <button class="ghost small" (click)="reset()">Ask another</button>
+        </section>
+      }
+      @case ('follow_up') {
+        <section class="reply follow-up">
+          <p class="q">{{ r.reply }}</p>
+          <p class="hint">Type your answer above and send again.</p>
+        </section>
+      }
+      @case ('capture') {
+        <section class="review">
+          <header class="review-header">
+            <p class="summary">{{ r.reply }}</p>
+            @if (r.items.length > 0) {
+              <button class="confirm-all" (click)="confirmAll()" [disabled]="stage() === 'committing'">
+                Confirm all ({{ activeCount() }})
+              </button>
+            }
+          </header>
+
+          @if (r.items.length === 0) {
+            <p class="muted small">Nothing actionable found in that. Try again or ask a question instead.</p>
+          }
+
+          <ul class="cards">
+            @for (item of r.items; track $index; let i = $index) {
+              <li class="card" [class.skipped]="skipped().has(i)">
+                <div class="card-body">
+                  <p class="describe">{{ describe(item) }}</p>
+                  @if (item.reasoning) {
+                    <p class="reason">“{{ item.reasoning }}”</p>
+                  }
+                </div>
+                <div class="card-actions">
+                  @if (skipped().has(i)) {
+                    <button class="ghost small" (click)="unskip(i)">Bring back</button>
+                  } @else {
+                    <button class="ghost small" (click)="skip(i)">Skip</button>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+
+          @if (r.items.length > 0) {
+            <button
+              class="commit-btn"
+              (click)="commit()"
+              [disabled]="activeCount() === 0 || stage() === 'committing'"
+            >
+              @if (stage() === 'committing') { <span class="spinner"></span> Saving… }
+              @else { Save {{ activeCount() }} {{ activeCount() === 1 ? 'item' : 'items' }} }
+            </button>
+          }
+        </section>
+      }
+    }
+  }
+
+  @if (lastSummary(); as s) {
+    <p class="commit-result">
+      Saved {{ s.applied }} {{ s.applied === 1 ? 'item' : 'items' }}.
+      @if (s.errors.length) { <span class="err"> {{ s.errors.length }} failed.</span> }
+    </p>
+  }
+
+  @if (error(); as e) { <p class="error">{{ e }}</p> }
+</main>

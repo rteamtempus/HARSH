@@ -1,0 +1,47 @@
+<main class="wrap">
+  <header>
+    <a routerLink="/" class="back" aria-label="Back to home">←</a>
+    <h1>Lists</h1>
+  </header>
+
+  @if (lists.lists().length === 0) {
+    <p class="muted empty">No lists yet. Add an item from the home page and the AI will create one.</p>
+  } @else {
+    <nav class="tabs" role="tablist">
+      @for (l of lists.lists(); track l.id) {
+        <button
+          role="tab"
+          [class.active]="activeListId() === l.id"
+          (click)="selectList(l.id)"
+        >{{ l.name }}</button>
+      }
+    </nav>
+
+    <form class="adder" (submit)="$event.preventDefault(); add()">
+      <input
+        type="text"
+        [(ngModel)]="draft"
+        name="draft"
+        [placeholder]="addPlaceholder()"
+        autocomplete="off"
+      />
+      <button type="submit" [disabled]="!draft.trim()">Add</button>
+    </form>
+
+    <ul class="items">
+      @for (item of activeItems(); track item.id) {
+        <li [class.checked]="item.checked">
+          <button class="check" (click)="toggle(item)" [attr.aria-label]="item.checked ? 'Uncheck' : 'Check'">
+            @if (item.checked) { <span>✓</span> }
+          </button>
+          <span class="text">{{ item.text }}</span>
+          <button class="remove" (click)="remove(item)" aria-label="Remove">×</button>
+        </li>
+      } @empty {
+        <li class="muted empty">Nothing here yet. Add the first item above.</li>
+      }
+    </ul>
+  }
+
+  @if (error(); as e) { <p class="error">{{ e }}</p> }
+</main>

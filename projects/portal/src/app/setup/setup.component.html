@@ -1,0 +1,45 @@
+<main class="wrap">
+  <h1>Set up your family</h1>
+  <p>Name your household and add the people in it. You can edit this later.</p>
+
+  <form (submit)="$event.preventDefault(); save()">
+    <label>
+      Household name
+      <input type="text" [(ngModel)]="name" name="name" required />
+    </label>
+
+    <p class="hint">Which name above is you? (we'll mark you as the owner)</p>
+    <label>
+      Your name
+      <input type="text" [(ngModel)]="ownerName" name="ownerName" required />
+    </label>
+
+    <h2>Members</h2>
+    <ul class="members">
+      @for (m of members(); track $index; let i = $index) {
+        <li>
+          <span class="dot" [style.background]="m.color"></span>
+          <input
+            type="text"
+            [ngModel]="m.display_name"
+            (ngModelChange)="updateMember(i, 'display_name', $event)"
+            [name]="'mname-' + i"
+          />
+          <input
+            type="color"
+            [ngModel]="m.color"
+            (ngModelChange)="updateMember(i, 'color', $event)"
+            [name]="'mcolor-' + i"
+          />
+          <button type="button" class="remove" (click)="removeMember(i)" aria-label="Remove">×</button>
+        </li>
+      }
+    </ul>
+    <button type="button" class="add" (click)="addMember()">+ Add member</button>
+
+    <button type="submit" [disabled]="busy()" class="primary">
+      {{ busy() ? 'Saving…' : 'Create family' }}
+    </button>
+    @if (error(); as e) { <p class="error">{{ e }}</p> }
+  </form>
+</main>

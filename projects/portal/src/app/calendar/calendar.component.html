@@ -1,0 +1,48 @@
+<main class="wrap">
+  <header>
+    <div>
+      <a routerLink="/" class="back">← Home</a>
+      <h1>Calendar</h1>
+    </div>
+    <a routerLink="/settings" class="ghost">Manage calendars</a>
+  </header>
+
+  @if (events.events().length === 0) {
+    <p class="empty">
+      No events yet. @if (calendars.accounts().length === 0) {
+        Connect a calendar in <a routerLink="/settings">Settings</a> to get started.
+      } @else {
+        Nothing scheduled in the next 60 days.
+      }
+    </p>
+  } @else {
+    <ul class="days">
+      @for (day of grouped(); track day.key) {
+        <li>
+          <header class="day-head">
+            <div class="day-num">{{ day.date | date:'d' }}</div>
+            <div>
+              <div class="day-name">{{ day.date | date:'EEEE' }}</div>
+              <div class="day-sub">{{ day.date | date:'MMMM y' }}</div>
+            </div>
+          </header>
+          <ul class="events">
+            @for (e of day.events; track e.id) {
+              <li class="event" [style.--cal-color]="colorFor(e)">
+                <div class="time">
+                  @if (e.all_day) { all day }
+                  @else { {{ e.starts_at | date:'h:mm a' }} }
+                </div>
+                <div class="body">
+                  <div class="title">{{ e.title }}</div>
+                  @if (e.location) { <div class="meta">{{ e.location }}</div> }
+                  @if (sourceLabel(e); as src) { <div class="meta src">{{ src }}</div> }
+                </div>
+              </li>
+            }
+          </ul>
+        </li>
+      }
+    </ul>
+  }
+</main>

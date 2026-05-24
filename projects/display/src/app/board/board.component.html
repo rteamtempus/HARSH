@@ -1,0 +1,105 @@
+<main>
+  <header [class.wake-flash]="wakeFlash()">
+    <h1 class="harsh">{{ familyDisplayName() }}</h1>
+    <div class="meta">
+      @if (voice.capturingCommand()) {
+        <span class="capture-pill"><span class="dot-live big"></span> Listening…</span>
+      } @else if (wakeFlash()) {
+        <span class="capture-pill"><span class="dot-live big"></span> Heard you!</span>
+      }
+      <span class="clock mono">{{ now() }}</span>
+      <button class="menu-btn" (click)="menuOpen.set(!menuOpen())" aria-label="Menu">
+        <span class="menu-icon"></span>
+      </button>
+    </div>
+
+    @if (menuOpen()) {
+      <div class="menu-backdrop" (click)="menuOpen.set(false)"></div>
+      <div class="menu" role="dialog">
+        <h3>Display</h3>
+        <div class="row">
+          <label>View</label>
+          <div class="seg">
+            <button [class.active]="view() === 'day'" (click)="setView('day')">Day</button>
+            <button [class.active]="view() === 'week'" (click)="setView('week')">Week</button>
+            <button [class.active]="view() === 'month'" (click)="setView('month')">Month</button>
+          </div>
+        </div>
+        <div class="row">
+          <label>Theme</label>
+          <div class="seg">
+            <button [class.active]="theme.state().mode === 'light'" (click)="theme.apply({ mode: 'light' })">Light</button>
+            <button [class.active]="theme.state().mode === 'dark'" (click)="theme.apply({ mode: 'dark' })">Dark</button>
+          </div>
+        </div>
+        <div class="row">
+          <label>Full screen</label>
+          <button class="primary small" (click)="toggleFullscreen()">
+            {{ fullscreen() ? 'Exit' : 'Enter' }}
+          </button>
+        </div>
+
+        <h3>Voice</h3>
+        <div class="row">
+          <label>Wake word</label>
+          @if (!voice.wakeArmed() && voice.supported()) {
+            <button class="primary small" (click)="enableVoice()">Enable “Hey HARSH”</button>
+          } @else if (voice.wakeArmed()) {
+            <span class="status"><span class="dot-live"></span> Listening</span>
+          } @else {
+            <span class="status muted">Not supported</span>
+          }
+        </div>
+        @if (voice.voices().length > 0) {
+          <div class="row">
+            <label>Voice</label>
+            <select [value]="voice.selectedVoiceName() ?? ''" (change)="pickVoice($event)">
+              <option value="">Default</option>
+              @for (v of voice.voices(); track v.name) {
+                <option [value]="v.name">{{ v.name }}</option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+    }
+  </header>
+
+  <div class="cols">
+    <section class="cal">
+      @if (view() === 'day') {
+        <harsh-day-view [events]="events.events()" [anchor]="anchor()" [now]="nowDate()" [colorFor]="colorForFn" />
+      } @else if (view() === 'week') {
+        <harsh-week-view [events]="events.events()" [anchor]="anchor()" [now]="nowDate()" [colorFor]="colorForFn" />
+      } @else {
+        <harsh-month-view [events]="events.events()" [anchor]="anchor()" [colorFor]="colorForFn" />
+      }
+    </section>
+
+    <aside class="lists-side">
+      <nav class="list-tabs">
+        @for (l of lists.lists(); track l.id) {
+          <button [class.active]="activeListId() === l.id" (click)="setActiveList(l.id)">{{ l.name }}</button>
+        }
+      </nav>
+      @if (activeList(); as list) {
+        <ul class="list-items">
+          @for (item of openItems(); track item.id) {
+            <li class="list-item" [style.--member-color]="memberColor(item)">
+              <span class="dot"></span>
+              <span class="text">{{ item.text }}</span>
+            </li>
+          } @empty {
+            <li class="list-empty">All clear on {{ list.name.toLowerCase() }}.</li>
+          }
+        </ul>
+        @if (checkedItems().length > 0) {
+          <p class="checked-count">{{ checkedItems().length }} done</p>
+        }
+      }
+    </aside>
+  </div>
+
+  @if (heard(); as h) { <p class="heard">“{{ h }}”</p> }
+  @if (reply(); as r) { <p class="reply">{{ r }}</p> }
+</main>

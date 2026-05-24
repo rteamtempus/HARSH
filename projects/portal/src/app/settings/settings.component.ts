@@ -1,0 +1,237 @@
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import {
+  CalendarAccountRow,
+  CalendarService,
+  FamilyService,
+  MemberRole,
+  MemberRow,
+  MemberService,
+  detectTz,
+} from 'data-access';
+
+// Pragmatic shortlist — full IANA db is 500+ entries, this covers everywhere a US/CA family is likely to live.
+const COMMON_TIMEZONES = [
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Phoenix',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'America/Halifax',
+  'America/St_Johns',
+  'America/Toronto',
+  'America/Vancouver',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Australia/Sydney',
+  'UTC',
+];
+
+const DEFAULT_COLORS = [
+  '#c98a8a', '#d9a85a', '#4f7a9a', '#7a9a4f', '#9a7ac0',
+  '#b1432a', '#d89220', '#c4452a', '#9ca665', '#6b8e9e',
+];
+
+@Component({
+  selector: 'harsh-settings',
+  standalone: true,
+  imports: [FormsModule, RouterLink, DatePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './settings.component.html',
+  styleUrl: './settings.component.scss',
+})
+export class SettingsComponent implements OnInit {
+  protected readonly family = inject(FamilyService);
+  protected readonly calendars = inject(CalendarService);
+  private readonly members = inject(MemberService);
+  private readonly router = inject(Router);
+
+  readonly colors = DEFAULT_COLORS;
+  readonly editing = signal<EditingMember | null>(null);
+  readonly busy = signal(false);
+  readonly memberError = signal<string | null>(null);
+
+  readonly newCal = { name: '', url: '', color: DEFAULT_COLORS[0], memberId: null as string | null };
+  readonly calBusy = signal(false);
+  readonly calError = signal<string | null>(null);
+  readonly syncing = signal<string | null>(null);
+  readonly editingCalId = signal<string | null>(null);
+  readonly editCal = { name: '', url: '', color: DEFAULT_COLORS[0] };
+
+  readonly timezones = COMMON_TIMEZONES;
+  readonly detectedTz = detectTz();
+  readonly tzBusy = signal(false);
+  readonly currentTz = () => this.family.family()?.time_zone ?? this.detectedTz;
+
+  async ngOnInit(): Promise<void> {
+    const fam = this.family.family() ?? (await this.family.loadCurrent());
+    if (!fam) { await this.router.navigateByUrl('/setup'); return; }
+    await this.calendars.loadAccounts(fam.id);
+  }
+
+  startNew(): void {
+    this.memberError.set(null);
+    this.editing.set({
+      id: null,
+      display_name: '',
+      color: this.colors[Math.floor(Math.random() * this.colors.length)],
+      role: 'adult',
+      invited_email: '',
+    });
+  }
+  startEdit(m: MemberRow): void {
+    this.memberError.set(null);
+    this.editing.set({
+      id: m.id,
+      display_name: m.display_name,
+      color: m.color,
+      role: m.role,
+      invited_email: m.invited_email ?? '',
+    });
+  }
+
+  async saveEdit(): Promise<void> {
+    const e = this.editing();
+    if (!e) return;
+    this.busy.set(true);
+    this.memberError.set(null);
+    try {
+      if (e.id) {
+        await this.members.updateMember(e.id, {
+          display_name: e.display_name,
+          color: e.color,
+          role: e.role,
+          invited_email: e.invited_email,
+        });
+      } else {
+        await this.members.addMember({
+          display_name: e.display_name,
+          color: e.color,
+          role: e.role,
+          invited_email: e.invited_email,
+        });
+      }
+      this.editing.set(null);
+    } catch (err: any) {
+      this.memberError.set(err?.message ?? 'Save failed');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async removeMember(id: string): Promise<void> {
+    if (!confirm('Remove this member? They can be re-invited later.')) return;
+    this.busy.set(true);
+    try {
+      await this.members.removeMember(id);
+      this.editing.set(null);
+    } catch (err: any) {
+      this.memberError.set(err?.message ?? 'Remove failed');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async addCalendar(): Promise<void> {
+    const fam = this.family.family();
+    if (!fam) return;
+    if (!this.newCal.name.trim() || !this.newCal.url.trim()) {
+      this.calError.set('Name and URL are required');
+      return;
+    }
+    this.calBusy.set(true);
+    this.calError.set(null);
+    try {
+      const account = await this.calendars.addAccount({
+        family_id: fam.id,
+        kind: 'ics',
+        name: this.newCal.name,
+        color: this.newCal.color,
+        ics_url: this.newCal.url,
+        member_id: this.newCal.memberId,
+      });
+      this.newCal.name = '';
+      this.newCal.url = '';
+      this.newCal.color = DEFAULT_COLORS[0];
+      this.newCal.memberId = null;
+      // Trigger an initial sync so the user gets feedback.
+      void this.sync(account.id);
+    } catch (err: any) {
+      this.calError.set(err?.message ?? 'Could not connect calendar');
+    } finally {
+      this.calBusy.set(false);
+    }
+  }
+
+  async setTz(ev: Event): Promise<void> {
+    const tz = (ev.target as HTMLSelectElement).value;
+    this.tzBusy.set(true);
+    try {
+      await this.family.updateTimeZone(tz);
+    } catch (e) { console.error(e); }
+    finally { this.tzBusy.set(false); }
+  }
+
+  toggleEditCal(id: string): void {
+    if (this.editingCalId() === id) { this.editingCalId.set(null); return; }
+    const c = this.calendars.accounts().find((a) => a.id === id);
+    if (!c) return;
+    this.editCal.name = c.name;
+    this.editCal.url = c.ics_url ?? '';
+    this.editCal.color = c.color;
+    this.editingCalId.set(id);
+  }
+
+  async saveCal(id: string): Promise<void> {
+    this.calBusy.set(true);
+    this.calError.set(null);
+    try {
+      await this.calendars.updateAccount(id, {
+        name: this.editCal.name.trim(),
+        ics_url: this.editCal.url.trim(),
+        color: this.editCal.color,
+      });
+      this.editingCalId.set(null);
+      void this.sync(id);
+    } catch (err: any) {
+      this.calError.set(err?.message ?? 'Save failed');
+    } finally {
+      this.calBusy.set(false);
+    }
+  }
+
+  async sync(id: string): Promise<void> {
+    this.syncing.set(id);
+    try {
+      await this.calendars.syncAccount(id);
+      const fam = this.family.family();
+      if (fam) await this.calendars.loadAccounts(fam.id);
+    } catch (err: any) {
+      this.calError.set(err?.message ?? 'Sync failed');
+    } finally {
+      this.syncing.set(null);
+    }
+  }
+
+  async removeCalendar(id: string): Promise<void> {
+    if (!confirm('Remove this calendar and all of its synced events?')) return;
+    try {
+      await this.calendars.removeAccount(id);
+    } catch (err: any) {
+      this.calError.set(err?.message ?? 'Remove failed');
+    }
+  }
+}
+
+interface EditingMember {
+  id: string | null;
+  display_name: string;
+  color: string;
+  role: MemberRole;
+  invited_email: string;
+}

@@ -1,0 +1,45 @@
+<div class="view">
+  <div class="view-head">
+    <div class="day-line">
+      <span class="big-day">{{ anchor() | date:'EEEE' }}</span>
+      <span class="big-date">{{ anchor() | date:'MMMM d, y' }}</span>
+    </div>
+  </div>
+
+  @if (allDay().length > 0) {
+    <div class="all-day-strip">
+      <span class="strip-label">All day</span>
+      <div class="strip-events">
+        @for (e of allDay(); track e.id) {
+          <span class="all-day-chip" [style.--cal-color]="colorFor()(e)">{{ e.title }}</span>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="time-grid">
+    <div class="hours">
+      @for (h of hours; track h) {
+        <div class="hour-cell">{{ formatHour(h) }}</div>
+      }
+    </div>
+    <div class="day-col">
+      @for (h of hours; track h) { <div class="hour-line"></div> }
+      @for (e of timed(); track e.id) {
+        <div class="event"
+             [style.--cal-color]="colorFor()(e)"
+             [style.top.%]="topPct(e)"
+             [style.height.%]="heightPct(e)">
+          <div class="evt-time">{{ e.starts_at | date:'h:mm a' }}</div>
+          <div class="evt-title">{{ e.title }}</div>
+        </div>
+      }
+      @if (nowInRange()) {
+        <div class="now-line" [style.top.%]="nowPct()">
+          <span class="now-dot"></span>
+          <span class="now-label">{{ now() | date:'h:mm a' }}</span>
+        </div>
+      }
+    </div>
+  </div>
+</div>

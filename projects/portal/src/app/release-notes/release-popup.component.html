@@ -1,0 +1,37 @@
+@if (open() && releases().length > 0) {
+  <div class="backdrop" (click)="dismiss()">
+    <div class="card" role="dialog" aria-labelledby="rn-heading" (click)="$event.stopPropagation()">
+      <header>
+        <h2 id="rn-heading">What's new</h2>
+        <button type="button" class="close" (click)="dismiss()" aria-label="Dismiss">×</button>
+      </header>
+
+      <div class="body">
+        @for (r of releases(); track r.version) {
+          <section>
+            <div class="ver-line">
+              <strong>v{{ r.version }}</strong>
+              <time>{{ r.released_at | date: 'mediumDate' }}</time>
+            </div>
+            @if (r.notes.new_features.length) {
+              <h3>New</h3>
+              <ul>@for (it of r.notes.new_features; track it) { <li>{{ it }}</li> }</ul>
+            }
+            @if (r.notes.improvements.length) {
+              <h3>Improvements</h3>
+              <ul>@for (it of r.notes.improvements; track it) { <li>{{ it }}</li> }</ul>
+            }
+            @if (r.notes.fixes.length) {
+              <h3>Fixes</h3>
+              <ul>@for (it of r.notes.fixes; track it) { <li>{{ it }}</li> }</ul>
+            }
+          </section>
+        }
+      </div>
+
+      <footer>
+        <button type="button" class="primary" (click)="dismiss()">Got it</button>
+      </footer>
+    </div>
+  </div>
+}

@@ -125,6 +125,32 @@ High-level snapshot (2026-05-24):
 
 ---
 
+## Conventions
+
+### File layout for components
+Every Angular component is split into three sibling files:
+
+```
+<feature>/
+  <feature>.component.ts     // class + decorator (templateUrl + styleUrl)
+  <feature>.component.html   // template
+  <feature>.component.scss   // styles
+  <feature>.component.spec.ts (optional)
+```
+
+- Class name follows `<Feature>Component` (e.g. `HomeComponent`, `BoardComponent`).
+- Decorator uses `templateUrl: './x.component.html'` and `styleUrl: './x.component.scss'`. **Never** inline `template:` or `styles:` arrays in new code — keep templates and styles in their own files for diff readability and IDE tooling.
+- App shells (`app.component.ts`) follow the same pattern as regular pages — no special casing.
+- Lazy-loaded route imports use the `.component` suffix: `import('./home/home.component').then(m => m.HomeComponent)`.
+
+### Service layer
+- One service per primitive (`ListService`, `RoutineService`, etc.) in `projects/data-access/src/lib/`.
+- Services own realtime channels and a `signal()` cache, plus CRUD + domain methods. Mirror the pattern in `list.service.ts`.
+- All Postgres writes that need atomicity (e.g. routine action + history) go through SECURITY DEFINER RPCs — see `routine.service.ts` for examples.
+
+### Adapter layer
+- Vendor-neutral interfaces in `projects/data-access/src/lib/adapters/`. Feature code consumes the interface (via `inject<LlmAdapter>(LLM_ADAPTER)`), not the concrete impl. Wire the concrete impl once in `app.config.ts`.
+
 ## Gotchas
 
 - **Theme system is off-limits for refactoring.** Owner is attached to it. Extend through existing primitives; do not replace.

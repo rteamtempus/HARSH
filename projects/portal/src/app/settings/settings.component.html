@@ -1,0 +1,195 @@
+<main class="wrap">
+  <header>
+    <a routerLink="/" class="back">← Back</a>
+    <h1>Settings</h1>
+  </header>
+
+  <!-- Family -->
+  <section>
+    <h2>Family</h2>
+    <div class="row">
+      <span class="dot" [style.background]="'#717744'"></span>
+      <div class="meta">
+        <strong>Time zone</strong>
+        <span class="sub">Used for calendar sync and clock display. Detected: {{ detectedTz }}</span>
+      </div>
+      <select (change)="setTz($event)" [disabled]="tzBusy()">
+        @if (!timezones.includes(currentTz())) {
+          <option [value]="currentTz()" selected>{{ currentTz() }}</option>
+        }
+        @for (z of timezones; track z) {
+          <option [value]="z" [selected]="z === currentTz()">{{ z }}</option>
+        }
+      </select>
+    </div>
+  </section>
+
+  <!-- Members -->
+  <section>
+    <h2>Family members</h2>
+    <p class="hint">Add an email to invite someone — they'll be linked automatically when they sign in with it.</p>
+
+    <ul class="rows">
+      @for (m of family.members(); track m.id) {
+        <li class="row" [class.is-me]="m.id === family.me()?.id">
+          <span class="dot" [style.background]="m.color"></span>
+          <div class="meta">
+            <strong>{{ m.display_name }}</strong>
+            <span class="sub">
+              {{ m.role }}
+              @if (m.user_id) { · signed in }
+              @else if (m.invited_email) { · invited {{ m.invited_email }} }
+              @else { · no email yet }
+            </span>
+          </div>
+          <button class="ghost" (click)="startEdit(m)">Edit</button>
+        </li>
+      }
+    </ul>
+
+    @if (editing(); as e) {
+      <form class="editor" (submit)="$event.preventDefault(); saveEdit()">
+        <h3>{{ e.id ? 'Edit member' : 'Add member' }}</h3>
+        <label>
+          Name
+          <input type="text" [(ngModel)]="e.display_name" name="display_name" required />
+        </label>
+        <label>
+          Email <span class="hint inline">(optional — used to link their sign-in)</span>
+          <input type="email" [(ngModel)]="e.invited_email" name="invited_email" autocomplete="email" />
+        </label>
+        <label>
+          Role
+          <select [(ngModel)]="e.role" name="role">
+            <option value="owner">Owner</option>
+            <option value="adult">Adult</option>
+            <option value="kid">Kid</option>
+          </select>
+        </label>
+        <label>
+          Color
+          <div class="swatches">
+            @for (c of colors; track c) {
+              <button type="button" class="swatch" [class.picked]="e.color === c" [style.background]="c" (click)="e.color = c" [attr.aria-label]="c"></button>
+            }
+            <input type="color" [(ngModel)]="e.color" name="color" />
+          </div>
+        </label>
+        <div class="row-actions">
+          @if (e.id) {
+            <button type="button" class="danger" (click)="removeMember(e.id)">Remove</button>
+          }
+          <button type="button" class="ghost" (click)="editing.set(null)">Cancel</button>
+          <button type="submit" class="primary" [disabled]="busy()">{{ busy() ? 'Saving…' : 'Save' }}</button>
+        </div>
+        @if (memberError(); as err) { <p class="error">{{ err }}</p> }
+      </form>
+    } @else {
+      <button class="add" (click)="startNew()">+ Add member</button>
+    }
+  </section>
+
+  <!-- Calendars -->
+  <section>
+    <h2>Calendars</h2>
+    <p class="hint">
+      Connect calendars by pasting their public iCal (.ics) URL. This works for Google Calendar,
+      Apple iCloud (with calendar sharing on), Outlook, and most others. Two-way Google + Apple
+      sync via OAuth is coming next.
+    </p>
+
+    <ul class="rows">
+      @for (c of calendars.accounts(); track c.id) {
+        <li class="row cal-row">
+          <div class="row-main">
+            <span class="dot" [style.background]="c.color"></span>
+            <div class="meta">
+              <strong>{{ c.name }}</strong>
+              <span class="sub">
+                {{ c.kind }}
+                @if (c.last_synced_at) { · last synced {{ c.last_synced_at | date:'short' }} }
+                @else { · never synced }
+              </span>
+              @if (c.last_sync_status === 'error' || c.last_sync_status === 'partial') {
+                <span class="sub error">⚠ {{ c.last_sync_error }}</span>
+              }
+            </div>
+            <button class="ghost small" (click)="toggleEditCal(c.id)">
+              {{ editingCalId() === c.id ? 'Close' : 'Edit' }}
+            </button>
+            <button class="ghost" (click)="sync(c.id)" [disabled]="syncing() === c.id">
+              {{ syncing() === c.id ? 'Syncing…' : 'Sync now' }}
+            </button>
+            <button class="danger small" (click)="removeCalendar(c.id)">Remove</button>
+          </div>
+          @if (editingCalId() === c.id) {
+            <form class="editor inline" (submit)="$event.preventDefault(); saveCal(c.id)">
+              <label>
+                Name <input type="text" [(ngModel)]="editCal.name" name="ec_name" required />
+              </label>
+              <label>
+                iCal URL <input type="url" [(ngModel)]="editCal.url" name="ec_url" required />
+              </label>
+              <label>
+                Color
+                <div class="swatches">
+                  @for (col of colors; track col) {
+                    <button type="button" class="swatch" [class.picked]="editCal.color === col" [style.background]="col" (click)="editCal.color = col"></button>
+                  }
+                  <input type="color" [(ngModel)]="editCal.color" name="ec_color" />
+                </div>
+              </label>
+              <div class="row-actions">
+                <button type="submit" class="primary" [disabled]="calBusy()">{{ calBusy() ? 'Saving…' : 'Save & re-sync' }}</button>
+              </div>
+            </form>
+          }
+        </li>
+      } @empty {
+        <li class="muted empty">No calendars yet.</li>
+      }
+    </ul>
+
+    <form class="editor" (submit)="$event.preventDefault(); addCalendar()">
+      <h3>Add ICS calendar</h3>
+      <label>
+        Name <input type="text" [(ngModel)]="newCal.name" name="cal_name" placeholder="e.g. Family Google" required />
+      </label>
+      <label>
+        iCal URL
+        <input type="url" [(ngModel)]="newCal.url" name="cal_url" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics" required />
+      </label>
+      <label>
+        Assign to (optional)
+        <select [(ngModel)]="newCal.memberId" name="cal_member">
+          <option [ngValue]="null">— shared / family —</option>
+          @for (m of family.members(); track m.id) {
+            <option [ngValue]="m.id">{{ m.display_name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Color
+        <div class="swatches">
+          @for (c of colors; track c) {
+            <button type="button" class="swatch" [class.picked]="newCal.color === c" [style.background]="c" (click)="newCal.color = c" [attr.aria-label]="c"></button>
+          }
+          <input type="color" [(ngModel)]="newCal.color" name="cal_color" />
+        </div>
+      </label>
+      <div class="row-actions">
+        <button type="submit" class="primary" [disabled]="calBusy()">{{ calBusy() ? 'Adding…' : 'Connect' }}</button>
+      </div>
+      @if (calError(); as err) { <p class="error">{{ err }}</p> }
+    </form>
+
+    <details class="hint-block">
+      <summary>How to find your iCal URL</summary>
+      <ul>
+        <li><strong>Google Calendar:</strong> Settings → click your calendar → "Integrate calendar" → copy the "Secret address in iCal format". Keep that URL private — anyone with it can read the calendar.</li>
+        <li><strong>Apple iCloud:</strong> open Calendar on Mac or iCloud.com → right-click the calendar → Share Calendar → check "Public Calendar" → copy the URL (replace <code>webcal://</code> with <code>https://</code>).</li>
+        <li><strong>Outlook / Microsoft 365:</strong> Calendar settings → Shared calendars → Publish a calendar → copy the ICS link.</li>
+      </ul>
+    </details>
+  </section>
+</main>

@@ -1,0 +1,22 @@
+:host { display:block; min-height:100dvh; background:var(--bg-canvas); color:var(--text-primary); }
+.wrap { max-width:42rem; margin:0 auto; padding:var(--s-6) var(--s-5) var(--s-9); }
+header { display:flex; align-items:flex-end; justify-content:space-between; gap:var(--s-3); margin-bottom:var(--s-6); }
+.back { color:var(--text-tertiary); text-decoration:none; font-size:var(--fs-small); display:block; margin-bottom:var(--s-1); }
+.back:hover { color:var(--accent); }
+h1 { margin:0; font-family:var(--font-display); font-size:var(--fs-h1); }
+.ghost { background:transparent; border:1px solid var(--line-default); padding:var(--s-2) var(--s-3); border-radius:var(--r-md); cursor:pointer; color:var(--text-primary); font-size:var(--fs-small); text-decoration:none; }
+.ghost:hover { border-color:var(--accent); color:var(--accent); }
+.empty { color:var(--text-tertiary); font-style:italic; padding:var(--s-7) 0; text-align:center; }
+.empty a { color:var(--accent); }
+.days { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:var(--s-6); }
+.day-head { display:flex; align-items:center; gap:var(--s-3); margin-bottom:var(--s-3); padding-bottom:var(--s-2); border-bottom:1px solid var(--line-subtle); }
+.day-num { font-family:var(--font-display); font-size:2.5rem; font-weight:600; line-height:1; color:var(--text-secondary); min-width:2.5rem; text-align:center; }
+.day-name { font-weight:600; font-size:var(--fs-body); }
+.day-sub { font-size:var(--fs-small); color:var(--text-tertiary); }
+.events { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:var(--s-2); }
+.event { display:flex; gap:var(--s-3); background:var(--bg-raised); padding:var(--s-3) var(--s-4); border-radius:var(--r-md); border:1px solid var(--line-subtle); border-left:4px solid var(--cal-color, var(--accent)); box-shadow:var(--shadow-sm); }
+.time { width:6rem; font-size:var(--fs-small); color:var(--text-secondary); padding-top:0.15rem; font-variant-numeric:tabular-nums; }
+.body { flex:1; }
+.title { font-weight:600; }
+.meta { font-size:var(--fs-small); color:var(--text-tertiary); }
+.meta.src { font-size:var(--fs-micro); margin-top:0.15rem; }

@@ -1,0 +1,55 @@
+<div class="view">
+  <div class="view-head">
+    <div class="title">Week of {{ days()[0].date | date:'MMMM d' }}</div>
+  </div>
+
+  <div class="day-headers">
+    <div class="hours-spacer"></div>
+    @for (d of days(); track d.date.getTime()) {
+      <div class="day-header" [class.today]="isToday(d.date)">
+        <span class="dow">{{ d.date | date:'EEE' }}</span>
+        <span class="num">{{ d.date | date:'d' }}</span>
+      </div>
+    }
+  </div>
+
+  @if (anyAllDay()) {
+    <div class="all-day-row">
+      <div class="hours-spacer label">All day</div>
+      @for (d of days(); track d.date.getTime()) {
+        <div class="all-day-col">
+          @for (e of d.allDay; track e.id) {
+            <span class="all-day-chip" [style.--cal-color]="colorFor()(e)">{{ e.title }}</span>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <div class="time-grid">
+    <div class="hours">
+      @for (h of hours; track h) {
+        <div class="hour-cell">{{ formatHour(h) }}</div>
+      }
+    </div>
+    @for (d of days(); track d.date.getTime()) {
+      <div class="day-col" [class.today]="isToday(d.date)">
+        @for (h of hours; track h) { <div class="hour-line"></div> }
+        @for (e of d.timed; track e.id) {
+          <div class="event"
+               [style.--cal-color]="colorFor()(e)"
+               [style.top.%]="topPct(e)"
+               [style.height.%]="heightPct(e)">
+            <div class="evt-time">{{ e.starts_at | date:'h:mma' }}</div>
+            <div class="evt-title">{{ e.title }}</div>
+          </div>
+        }
+      </div>
+    }
+    @if (nowInRange()) {
+      <div class="now-line" [style.top.%]="nowPct()">
+        <span class="now-dot"></span>
+      </div>
+    }
+  </div>
+</div>

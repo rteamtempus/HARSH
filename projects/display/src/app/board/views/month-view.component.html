@@ -1,0 +1,25 @@
+<div class="view">
+  <div class="view-head">
+    <div class="title">{{ anchor() | date:'MMMM y' }}</div>
+  </div>
+  <div class="weekdays">
+    @for (d of weekdayLabels; track d) { <div>{{ d }}</div> }
+  </div>
+  <div class="grid" [style.--rows]="rows()">
+    @for (c of cells(); track c.date.getTime()) {
+      <div class="cell" [class.out]="!c.inMonth" [class.today]="isToday(c.date)">
+        <div class="num">{{ c.date | date:'d' }}</div>
+        <ul class="dots">
+          @for (e of c.events; track e.id) {
+            <li class="dot" [style.--cal-color]="colorFor()(e)" [title]="e.title">
+              @if (!e.all_day) {
+                <span class="dot-time">{{ chipTime(e.starts_at) }}</span>
+              }
+              <span class="dot-title">{{ e.title }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+</div>

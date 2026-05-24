@@ -1,0 +1,37 @@
+<section class="rn">
+  <h1>What's new</h1>
+
+  @if (loading()) {
+    <p class="muted">Loading…</p>
+  } @else if (releases().length === 0) {
+    <p class="muted">No releases yet.</p>
+  } @else {
+    @for (r of releases(); track r.version) {
+      <article>
+        <header>
+          <h2>v{{ r.version }}</h2>
+          <time>{{ r.released_at | date: 'mediumDate' }}</time>
+        </header>
+
+        @if (r.notes.new_features.length) {
+          <h3>New</h3>
+          <ul>
+            @for (item of r.notes.new_features; track item) { <li>{{ item }}</li> }
+          </ul>
+        }
+        @if (r.notes.improvements.length) {
+          <h3>Improvements</h3>
+          <ul>
+            @for (item of r.notes.improvements; track item) { <li>{{ item }}</li> }
+          </ul>
+        }
+        @if (r.notes.fixes.length) {
+          <h3>Fixes</h3>
+          <ul>
+            @for (item of r.notes.fixes; track item) { <li>{{ item }}</li> }
+          </ul>
+        }
+      </article>
+    }
+  }
+</section>

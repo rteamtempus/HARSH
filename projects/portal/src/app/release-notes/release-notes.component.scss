@@ -1,0 +1,10 @@
+.rn { max-width: 720px; margin: 0 auto; padding: 1.5rem; }
+h1 { margin: 0 0 1.5rem; }
+article { padding: 1rem 0; border-bottom: 1px solid var(--border, #e3e6ea); }
+article header { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+article h2 { margin: 0; font-size: 1.05rem; }
+article time { color: var(--text-muted, #6b7785); font-size: .85rem; }
+h3 { margin: .75rem 0 .25rem; font-size: .85rem; text-transform: uppercase; color: var(--text-muted, #6b7785); letter-spacing: .04em; }
+ul { margin: 0; padding-left: 1.25rem; }
+li { margin: .15rem 0; }
+.muted { color: var(--text-muted, #6b7785); }

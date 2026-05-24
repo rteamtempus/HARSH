@@ -1,0 +1,14 @@
+.help { max-width: 720px; margin: 0 auto; padding: 1.5rem; }
+header { margin-bottom: 2rem; }
+h1 { margin: 0 0 .25rem; }
+.lede { color: var(--text-muted, #6b7785); }
+article { margin-bottom: 1.75rem; }
+article h2 { margin: 0 0 .5rem; font-size: 1.15rem; }
+.status {
+  font-size: .85rem;
+  color: var(--text-muted, #6b7785);
+  font-style: italic;
+  margin: .25rem 0 0;
+}
+footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border, #e3e6ea); }
+a { color: var(--accent, #4f7a9a); }
