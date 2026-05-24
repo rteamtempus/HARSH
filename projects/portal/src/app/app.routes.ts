@@ -17,6 +17,11 @@ export const routes: Routes = [
     loadComponent: () => import('./lists/lists.component').then((m) => m.ListsComponent),
   },
   {
+    path: 'routines',
+    canActivate: [authGuard],
+    loadComponent: () => import('./routines/routines.component').then((m) => m.RoutinesComponent),
+  },
+  {
     path: 'calendar',
     canActivate: [authGuard],
     loadComponent: () => import('./calendar/calendar.component').then((m) => m.CalendarComponent),

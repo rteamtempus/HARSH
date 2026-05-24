@@ -164,7 +164,7 @@ For tasks like "cancel appointment, requires 24hr notice." Different from calend
 - AI considers these in "what should I do now" suggestions
 - Briefing surfaces upcoming `act_by` windows
 
-### 4.3 Routines (recurring non-calendar obligations)  *[schema landed, services + UI pending]*
+### 4.3 Routines (recurring non-calendar obligations)  *[schema + services + portal UI landed; fair-rotation surfacing waits for briefings]*
 
 A **routine** is a recurring household obligation that surfaces awareness, not action items. Different from a recurring to-do (which expects completion every time) and different from a calendar event (which has a specific time/place).
 

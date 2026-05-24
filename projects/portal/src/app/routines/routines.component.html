@@ -1,0 +1,117 @@
+<main class="wrap">
+  <header>
+    <a routerLink="/" class="back" aria-label="Back to home">←</a>
+    <h1>Routines</h1>
+  </header>
+
+  <p class="lede">
+    Recurring household stuff — trash, lawn, filters — that surfaces when it's due, not every day.
+    Brain dump can add these too ("trash goes out every Friday").
+  </p>
+
+  <section class="add-section">
+    @if (!adding()) {
+      <button class="add-btn" (click)="startAdd()">+ Add routine</button>
+    } @else {
+      <form class="editor" (submit)="$event.preventDefault(); saveNew()">
+        <h3>New routine</h3>
+        <label>
+          Name
+          <input type="text" [(ngModel)]="draft.name" name="name" placeholder="e.g. Mow lawn" required />
+        </label>
+        <label>
+          Category (optional)
+          <input type="text" [(ngModel)]="draft.category" name="category" placeholder="household, yard, bills…" />
+        </label>
+        <fieldset>
+          <legend>Cadence</legend>
+          <div class="cadence-row">
+            <label class="radio">
+              <input type="radio" name="cadenceType" value="interval"
+                     [checked]="draft.cadence_type === 'interval'"
+                     (change)="draft.cadence_type = 'interval'" />
+              <span>Every N days</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="cadenceType" value="calendar"
+                     [checked]="draft.cadence_type === 'calendar'"
+                     (change)="draft.cadence_type = 'calendar'" />
+              <span>RRULE (advanced)</span>
+            </label>
+          </div>
+          @if (draft.cadence_type === 'interval') {
+            <label>
+              Days
+              <input type="number" [(ngModel)]="draft.interval_days" name="intervalDays" min="1" />
+            </label>
+          } @else {
+            <label>
+              RRULE
+              <input type="text" [(ngModel)]="draft.cadence_rrule" name="rrule"
+                     placeholder="e.g. FREQ=WEEKLY;BYDAY=FR" />
+            </label>
+          }
+        </fieldset>
+        <label>
+          Notes (optional)
+          <textarea [(ngModel)]="draft.notes" name="notes" rows="2"></textarea>
+        </label>
+        <div class="actions">
+          <button type="button" class="ghost" (click)="cancelAdd()">Cancel</button>
+          <button type="submit" class="primary" [disabled]="busy()">
+            @if (busy()) { Saving… } @else { Save }
+          </button>
+        </div>
+        @if (error(); as e) { <p class="error">{{ e }}</p> }
+      </form>
+    }
+  </section>
+
+  @if (routines.routines().length === 0) {
+    <p class="empty">No routines yet. Add one above, or describe one on the home page.</p>
+  } @else {
+    <ul class="routine-list">
+      @for (r of routines.routines(); track r.id) {
+        <li class="routine" [class.paused]="isPaused(r)">
+          <div class="head">
+            <div>
+              <strong>{{ r.name }}</strong>
+              @if (r.category) { <span class="badge">{{ r.category }}</span> }
+              @if (isPaused(r)) { <span class="badge paused-badge">paused until {{ r.pause_until }}</span> }
+            </div>
+            <div class="cadence">
+              @if (r.cadence_type === 'interval') {
+                every {{ r.interval_days }} day{{ r.interval_days === 1 ? '' : 's' }}
+              } @else {
+                {{ r.cadence_rrule }}
+              }
+            </div>
+          </div>
+
+          @if (r.next_due) {
+            <p class="due">Next due {{ r.next_due | date:'mediumDate' }} ({{ relativeWhen(r.next_due) }})</p>
+          } @else {
+            <p class="due muted">No due date yet — complete it once to start the cycle.</p>
+          }
+
+          @if (r.notes) { <p class="notes">{{ r.notes }}</p> }
+
+          <div class="row-actions">
+            @if (!isPaused(r)) {
+              <button class="action primary" (click)="complete(r)" [disabled]="actionBusy() === r.id">Done</button>
+              <button class="action" (click)="snooze(r, 1)" [disabled]="actionBusy() === r.id">Snooze 1d</button>
+              <button class="action" (click)="snooze(r, 7)" [disabled]="actionBusy() === r.id">Snooze 7d</button>
+              <button class="action ghost" (click)="skip(r)" [disabled]="actionBusy() === r.id">Skip this one</button>
+              <button class="action ghost" (click)="promptPause(r)">Pause</button>
+            } @else {
+              <button class="action primary" (click)="resume(r)">Resume</button>
+            }
+            <button class="action danger" (click)="remove(r)">Delete</button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (loadError(); as e) { <p class="error">{{ e }}</p> }
+</main>

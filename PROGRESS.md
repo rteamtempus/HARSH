@@ -56,7 +56,7 @@ These shipped in the initial scaffold (commit `143841e`):
   - [x] `next_due` advancement for **interval** cadence (calendar cadence rrule expansion deferred — caller can pass `nextDue` explicitly)
   - [x] Fair rotation column wired through (briefing-side surfacing pending in Phase 2)
   - [ ] Pattern detection: list-item-to-routine suggestion at 4+ occurrences (Phase 1 stretch)
-  - [ ] Portal CRUD UI
+  - [x] Portal CRUD UI ([routines.component.ts](projects/portal/src/app/routines/routines.component.ts)) at `/routines`
 - [~] Household memory / facts — **service done, portal CRUD pending**
   - [x] Schema (`household_facts`)
   - [x] [HouseholdFactsService](projects/data-access/src/lib/household-facts.service.ts) with upsert-by-key + ILIKE search for RAG retrieval
