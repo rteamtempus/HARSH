@@ -28,6 +28,7 @@ export interface Briefing {
   type: BriefingType;
   content: BriefingContent;
   spoken_text: string | null;
+  audio_path: string | null;
   generated_at: string;
   model: string | null;
   latency_ms: number | null;
@@ -63,6 +64,20 @@ export class BriefingService {
     this.subscribe(familyId);
   }
 
+  /**
+   * Resolve a signed URL for the cached MP3. Returns null when no audio is
+   * available (TTS not configured server-side or synthesis failed).
+   * Signed URLs expire after 1 hour by default — re-call to refresh.
+   */
+  async audioUrl(briefing: Briefing): Promise<string | null> {
+    if (!briefing.audio_path) return null;
+    const { data, error } = await this.supabase.storage
+      .from('briefing-audio')
+      .createSignedUrl(briefing.audio_path, 60 * 60);
+    if (error || !data) return null;
+    return data.signedUrl;
+  }
+
   /** Read whichever briefing of `type` is current. */
   latest(type: BriefingType): Briefing | null {
     if (type === 'daily') return this.latestDaily();
@@ -92,6 +107,7 @@ export class BriefingService {
       type,
       content: normalize(data.briefing),
       spoken_text: data.spoken_text,
+      audio_path: (data as any).audio_path ?? null,
       generated_at: data.generated_at,
       model: null,
       latency_ms: data.latency_ms ?? null,
@@ -132,6 +148,7 @@ export class BriefingService {
       type: row.type,
       content: normalize(row.content),
       spoken_text: row.spoken_text,
+      audio_path: row.audio_path,
       generated_at: row.generated_at,
       model: row.model,
       latency_ms: row.latency_ms,
@@ -161,6 +178,7 @@ function rowFromSynthetic(b: Briefing): BriefingRow {
     type: b.type,
     content: b.content as any,
     spoken_text: b.spoken_text,
+    audio_path: b.audio_path,
     generated_at: b.generated_at,
     source_data_hash: null,
     model: b.model,

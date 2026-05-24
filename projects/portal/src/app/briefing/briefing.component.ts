@@ -28,6 +28,9 @@ export class BriefingComponent implements OnInit, OnDestroy {
   readonly type = signal<BriefingType>('daily');
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
+  readonly playing = signal(false);
+  readonly audioBusy = signal(false);
+  private audioEl: HTMLAudioElement | null = null;
 
   readonly current = computed<Briefing | null>(() => this.briefings.latest(this.type()));
 
@@ -45,7 +48,44 @@ export class BriefingComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnDestroy() { this.briefings.unsubscribe(); }
+  ngOnDestroy() {
+    this.stopAudio();
+    this.briefings.unsubscribe();
+  }
+
+  async togglePlay() {
+    if (this.playing()) { this.stopAudio(); return; }
+    const b = this.current();
+    if (!b) return;
+    this.audioBusy.set(true);
+    try {
+      const url = await this.briefings.audioUrl(b);
+      if (!url) {
+        this.error.set('No audio available — TTS may not be configured yet.');
+        return;
+      }
+      this.audioEl = new Audio(url);
+      this.audioEl.addEventListener('ended', () => this.playing.set(false));
+      this.audioEl.addEventListener('error', () => {
+        this.playing.set(false);
+        this.error.set('Could not play audio');
+      });
+      await this.audioEl.play();
+      this.playing.set(true);
+    } catch (e: any) {
+      this.error.set(e?.message ?? 'Playback failed');
+    } finally {
+      this.audioBusy.set(false);
+    }
+  }
+
+  private stopAudio() {
+    if (this.audioEl) {
+      this.audioEl.pause();
+      this.audioEl = null;
+    }
+    this.playing.set(false);
+  }
 
   setType(t: BriefingType) { this.type.set(t); }
 

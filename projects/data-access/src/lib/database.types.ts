@@ -95,6 +95,7 @@ export type Database = {
       }
       briefings: {
         Row: {
+          audio_path: string | null
           content: Json
           created_at: string
           family_id: string
@@ -107,6 +108,7 @@ export type Database = {
           type: Database["public"]["Enums"]["briefing_type"]
         }
         Insert: {
+          audio_path?: string | null
           content?: Json
           created_at?: string
           family_id: string
@@ -119,6 +121,7 @@ export type Database = {
           type: Database["public"]["Enums"]["briefing_type"]
         }
         Update: {
+          audio_path?: string | null
           content?: Json
           created_at?: string
           family_id?: string

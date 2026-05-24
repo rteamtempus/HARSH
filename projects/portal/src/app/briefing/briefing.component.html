@@ -8,6 +8,11 @@
         <button [class.active]="type() === 'weekly'" (click)="setType('weekly')">Week</button>
         <button [class.active]="type() === 'monthly'" (click)="setType('monthly')">Month</button>
       </div>
+      @if (current()?.audio_path) {
+        <button class="refresh" (click)="togglePlay()" [disabled]="audioBusy()">
+          @if (playing()) { ⏸ Stop } @else { ▶ Play }
+        </button>
+      }
       <button class="refresh" (click)="refresh()" [disabled]="busy()">
         @if (busy()) { <span class="spinner"></span> Generating… }
         @else { ↻ Refresh }

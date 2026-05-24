@@ -14,14 +14,65 @@ Last updated: 2026-05-24
 - [x] CLI linked (`npm run db:link`)
 - [x] Migrations pushed (auto-applied as features land)
 - [ ] Edge Function secrets configured
-  - [ ] `GEMINI_API_KEY` — verify it's set on the `ai-intent` AND new `llm` functions
-  - [ ] `GOOGLE_CLOUD_API_KEY` — add to the new `tts` function once you have the key from §3
+  - [ ] `GEMINI_API_KEY` — used by `ai-intent`, `llm`, `generate-briefing`
+  - [ ] `GOOGLE_CLOUD_API_KEY` — used by `tts` AND `generate-briefing` (briefing TTS is conditional on this; if unset, briefings stay text-only)
+  - [ ] `CRON_SECRET` — used by `tick-briefings` to authenticate scheduled calls. Generate with `openssl rand -hex 32`.
 - [ ] **Deploy edge functions** as features land:
   - [ ] `npx supabase functions deploy llm` (brain-dump backend)
   - [ ] `npx supabase functions deploy tts` (voice synthesis)
   - [ ] `npx supabase functions deploy generate-briefing` (daily/weekly/monthly briefings)
-- [ ] Schedule the context-note reaper (`reap_expired_context_notes()`) via pg_cron
+  - [ ] `npx supabase functions deploy tick-briefings` (cron orchestrator)
+- [ ] Schedule the context-note reaper (`reap_expired_context_notes()`) via pg_cron — see below
 - [ ] Schedule briefing regeneration via pg_cron — 6am / 12pm / 4:30pm / 7:30pm per FEATURES.md §4.5
+
+### Setting up pg_cron schedules
+
+Both pg_cron and pg_net are pre-installed on Supabase. Enable them once in your project, then run the SQL script below.
+
+**1. Enable extensions** (Database → Extensions in the dashboard — toggle on):
+- `pg_cron`
+- `pg_net`
+
+**2. Store secrets in vault** (run as SQL in the SQL Editor — one-time):
+
+```sql
+-- Replace placeholders with your actual values.
+select vault.create_secret('https://bdqvpdobywqbyvjehyjs.supabase.co', 'project_url');
+select vault.create_secret('<your CRON_SECRET>', 'cron_secret');
+```
+
+**3. Schedule jobs** (run as SQL — one-time):
+
+```sql
+-- Context-note reaper: every hour at :05
+select cron.schedule(
+  'reap-context-notes',
+  '5 * * * *',
+  $$ select public.reap_expired_context_notes(); $$
+);
+
+-- Briefing tick: 6am, 12pm, 4:30pm, 7:30pm (UTC; adjust to your timezone offset)
+-- Replace 'America/Chicago' with your family timezone.
+-- pg_cron runs in UTC; convert your local times to UTC cron expressions.
+
+-- 06:00 local daily briefing
+select cron.schedule('briefing-morning', '0 12 * * *',  -- 06:00 CT (UTC-6) = 12:00 UTC
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name='project_url') || '/functions/v1/tick-briefings',
+    headers := jsonb_build_object(
+      'content-type','application/json',
+      'x-cron-secret',(select decrypted_secret from vault.decrypted_secrets where name='cron_secret')
+    ),
+    body := jsonb_build_object('type','daily')
+  );
+  $$
+);
+-- Repeat the same pattern for 12pm / 4:30pm / 7:30pm by changing the cron expression
+-- and the literal job name. Sunday-evening weekly: '0 1 * * 1' (Sun 19:00 CT). Monthly: '0 12 1 * *'.
+```
+
+See the Supabase docs: https://supabase.com/docs/guides/database/extensions/pg_cron
 
 ---
 

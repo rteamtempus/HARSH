@@ -250,6 +250,22 @@ Deno.serve(async (req: Request) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
+  // Optionally synthesize TTS audio (FEATURES.md §5.4 audio caching).
+  // Skipped silently when GOOGLE_CLOUD_API_KEY isn't configured — the UI
+  // falls back to text-only display in that case.
+  let audioPath: string | null = null;
+  const ttsKey = Deno.env.get('GOOGLE_CLOUD_API_KEY');
+  if (ttsKey && spokenText) {
+    try {
+      audioPath = await synthesizeAndUpload(
+        adminClient, ttsKey,
+        body.family_id, type, spokenText, family.settings?.voice?.voice_id,
+      );
+    } catch (e) {
+      console.error('tts synth failed (continuing without audio):', e);
+    }
+  }
+
   const upsertResp = await adminClient
     .from('briefings')
     .upsert(
@@ -258,6 +274,7 @@ Deno.serve(async (req: Request) => {
         type,
         content,
         spoken_text: spokenText,
+        audio_path: audioPath,
         generated_at: new Date().toISOString(),
         model: MODEL,
         latency_ms: latencyMs,
@@ -274,10 +291,58 @@ Deno.serve(async (req: Request) => {
   return json({
     briefing: content,
     spoken_text: spokenText,
+    audio_path: audioPath,
     generated_at: upsertResp.data.generated_at,
     latency_ms: latencyMs,
   });
 });
+
+const DEFAULT_VOICE = 'en-US-Chirp3-HD-Aoede';
+
+async function synthesizeAndUpload(
+  client: any,
+  apiKey: string,
+  familyId: string,
+  type: string,
+  text: string,
+  voiceId: string | undefined,
+): Promise<string | null> {
+  const voice = voiceId || DEFAULT_VOICE;
+  const languageCode = voice.split('-').slice(0, 2).join('-') || 'en-US';
+  const ttsResp = await fetch(
+    `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        input: { text },
+        voice: { name: voice, languageCode },
+        audioConfig: { audioEncoding: 'MP3' },
+      }),
+    },
+  );
+  if (!ttsResp.ok) {
+    console.error('google tts non-200', ttsResp.status, await ttsResp.text());
+    return null;
+  }
+  const ttsData = await ttsResp.json();
+  if (!ttsData.audioContent) return null;
+
+  // base64 → Uint8Array for storage upload.
+  const bin = atob(ttsData.audioContent);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+
+  const path = `${familyId}/${type}.mp3`;
+  const upload = await client.storage
+    .from('briefing-audio')
+    .upload(path, bytes, { contentType: 'audio/mp3', upsert: true });
+  if (upload.error) {
+    console.error('audio upload failed', upload.error);
+    return null;
+  }
+  return path;
+}
 
 function renderSpoken(c: any, type: string): string {
   const parts: string[] = [c.hero ?? ''];
