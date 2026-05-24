@@ -93,6 +93,53 @@ export type Database = {
           },
         ]
       }
+      briefings: {
+        Row: {
+          content: Json
+          created_at: string
+          family_id: string
+          generated_at: string
+          id: string
+          latency_ms: number | null
+          model: string | null
+          source_data_hash: string | null
+          spoken_text: string | null
+          type: Database["public"]["Enums"]["briefing_type"]
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          family_id: string
+          generated_at?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          source_data_hash?: string | null
+          spoken_text?: string | null
+          type: Database["public"]["Enums"]["briefing_type"]
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          family_id?: string
+          generated_at?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          source_data_hash?: string | null
+          spoken_text?: string | null
+          type?: Database["public"]["Enums"]["briefing_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefings_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_accounts: {
         Row: {
           color: string
@@ -950,6 +997,7 @@ export type Database = {
       }
     }
     Enums: {
+      briefing_type: "daily" | "weekly" | "monthly"
       calendar_account_kind: "ics" | "google" | "caldav"
       context_note_type:
         | "emotional"
@@ -1095,6 +1143,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      briefing_type: ["daily", "weekly", "monthly"],
       calendar_account_kind: ["ics", "google", "caldav"],
       context_note_type: [
         "emotional",

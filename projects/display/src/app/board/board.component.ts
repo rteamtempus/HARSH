@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, effect
 import { Router } from '@angular/router';
 import {
   AiService,
+  BriefingService,
   CalendarAccountRow,
   CalendarService,
   EventRow,
@@ -16,6 +17,7 @@ import {
 import { DayViewComponent } from './views/day-view.component';
 import { WeekViewComponent } from './views/week-view.component';
 import { MonthViewComponent } from './views/month-view.component';
+import { BriefingViewComponent } from './views/briefing-view.component';
 import {
   addDays,
   endOfDay,
@@ -27,12 +29,12 @@ import {
   startOfWeek,
 } from './date-utils';
 
-export type CalView = 'day' | 'week' | 'month';
+export type CalView = 'briefing' | 'day' | 'week' | 'month';
 
 @Component({
   selector: 'harsh-board',
   standalone: true,
-  imports: [DayViewComponent, WeekViewComponent, MonthViewComponent],
+  imports: [DayViewComponent, WeekViewComponent, MonthViewComponent, BriefingViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './board.component.html',
   styleUrl: './board.component.scss',
@@ -44,12 +46,14 @@ export class BoardComponent implements OnInit, OnDestroy {
   protected readonly calendars = inject(CalendarService);
   protected readonly voice = inject(VoiceService);
   protected readonly theme = inject(ThemeService);
+  protected readonly briefings = inject(BriefingService);
   private readonly ai = inject(AiService);
   private readonly router = inject(Router);
 
   readonly now = signal('');
   readonly nowDate = signal(new Date());
-  readonly view = signal<CalView>('week');
+  // Default view = briefing (FEATURES.md §4.5: "briefing = primary view")
+  readonly view = signal<CalView>('briefing');
   readonly anchor = signal<Date>(new Date());
   readonly activeListId = signal<string | null>(null);
   readonly heard = signal<string | null>(null);
@@ -96,10 +100,13 @@ export class BoardComponent implements OnInit, OnDestroy {
     });
 
     // Whenever view or anchor changes, reload events for the visible range.
+    // Briefing view doesn't need event data; skip the reload.
     effect(() => {
       const fam = this.family.family();
       if (!fam) return;
-      const { from, to } = rangeFor(this.view(), this.anchor());
+      const v = this.view();
+      if (v === 'briefing') return;
+      const { from, to } = rangeFor(v, this.anchor());
       void this.events.load(fam.id, { from, to });
     });
   }
@@ -125,6 +132,7 @@ export class BoardComponent implements OnInit, OnDestroy {
       const [lists, accounts] = await Promise.all([
         this.lists.loadLists(fam.id),
         this.calendars.loadAccounts(fam.id),
+        this.briefings.load(fam.id),
       ]);
       this.accountById.set(new Map(accounts.map((a) => [a.id, a])));
       const todo = lists.find((l) => l.kind === 'todo') ?? lists[0];
@@ -142,6 +150,7 @@ export class BoardComponent implements OnInit, OnDestroy {
     this.stopWake?.();
     this.lists.unsubscribe();
     this.events.unsubscribe();
+    this.briefings.unsubscribe();
     document.removeEventListener('fullscreenchange', this.fsListener);
   }
 

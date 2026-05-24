@@ -20,6 +20,7 @@
         <div class="row">
           <label>View</label>
           <div class="seg">
+            <button [class.active]="view() === 'briefing'" (click)="setView('briefing')">Briefing</button>
             <button [class.active]="view() === 'day'" (click)="setView('day')">Day</button>
             <button [class.active]="view() === 'week'" (click)="setView('week')">Week</button>
             <button [class.active]="view() === 'month'" (click)="setView('month')">Month</button>
@@ -67,7 +68,9 @@
 
   <div class="cols">
     <section class="cal">
-      @if (view() === 'day') {
+      @if (view() === 'briefing') {
+        <harsh-briefing-view [briefing]="briefings.latestDaily()" />
+      } @else if (view() === 'day') {
         <harsh-day-view [events]="events.events()" [anchor]="anchor()" [now]="nowDate()" [colorFor]="colorForFn" />
       } @else if (view() === 'week') {
         <harsh-week-view [events]="events.events()" [anchor]="anchor()" [now]="nowDate()" [colorFor]="colorForFn" />

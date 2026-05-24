@@ -40,6 +40,12 @@ export const routes: Routes = [
       import('./context-notes/context-notes.component').then((m) => m.ContextNotesComponent),
   },
   {
+    path: 'briefing',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./briefing/briefing.component').then((m) => m.BriefingComponent),
+  },
+  {
     path: 'calendar',
     canActivate: [authGuard],
     loadComponent: () => import('./calendar/calendar.component').then((m) => m.CalendarComponent),

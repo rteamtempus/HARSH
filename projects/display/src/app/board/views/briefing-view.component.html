@@ -1,0 +1,52 @@
+<div class="view">
+  @if (briefing(); as b) {
+    @if (b.content.hero) {
+      <p class="hero">{{ b.content.hero }}</p>
+    }
+
+    <div class="grid">
+      @if (b.content.today_shape.length) {
+        <section>
+          <h3>Today</h3>
+          <ul>
+            @for (line of b.content.today_shape; track line) { <li>{{ line }}</li> }
+          </ul>
+        </section>
+      }
+
+      @if (b.content.needs_attention.length) {
+        <section>
+          <h3>Needs attention</h3>
+          <ul>
+            @for (line of b.content.needs_attention; track line) { <li>{{ line }}</li> }
+          </ul>
+        </section>
+      }
+
+      @if (b.content.right_now.length) {
+        <section class="right-now">
+          <h3>Right now</h3>
+          <ul>
+            @for (line of b.content.right_now; track line) { <li>{{ line }}</li> }
+          </ul>
+        </section>
+      }
+
+      @if (b.content.heads_up.length) {
+        <section>
+          <h3>Heads up</h3>
+          <ul>
+            @for (line of b.content.heads_up; track line) { <li>{{ line }}</li> }
+          </ul>
+        </section>
+      }
+    </div>
+
+    <footer class="meta">Updated {{ b.generated_at | date:'shortTime' }}</footer>
+  } @else {
+    <div class="empty">
+      <p class="empty-line">No briefing generated yet.</p>
+      <p class="empty-sub">Open the portal and tap Refresh on the Briefing page, or wait for the next scheduled regeneration.</p>
+    </div>
+  }
+</div>

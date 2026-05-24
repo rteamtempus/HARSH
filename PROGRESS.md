@@ -92,16 +92,22 @@ These shipped in the initial scaffold (commit `143841e`):
 
 ## Phase 2 — Ambient intelligence
 
-- [ ] Briefing data model (`briefings` table with `source_data_hash`)
-- [ ] Daily briefing generation (hero line + sections)
-- [ ] Weekly briefing (zoom-out, Sunday/Monday)
-- [ ] Monthly briefing (light touch)
+- [x] Briefing data model ([20260524030000_briefings.sql](supabase/migrations/20260524030000_briefings.sql))
+- [~] Daily briefing generation — **end-to-end working; manual refresh only**
+  - [x] `generate-briefing` Edge Function: assembles events + routines + facts + active context notes, calls Gemini with structured-output schema, upserts row.
+  - [x] [BriefingService](projects/data-access/src/lib/briefing.service.ts) with realtime sync + `generate()`.
+  - [x] Portal /briefing view with type selector + Refresh.
+  - [x] Display board gains briefing as default view.
+  - [x] Context note suppression + tone hints honored in prompt.
+  - [ ] Owner action: `npx supabase functions deploy generate-briefing`.
+- [~] Weekly briefing — same generator (type='weekly'); spec-prescribed Sun/Mon cadence not yet scheduled.
+- [~] Monthly briefing — same generator (type='monthly'); start-of-month trigger not scheduled.
 - [ ] Scheduled regeneration cadence (6am / 12pm / 4:30pm / 7:30pm) via pg_cron
 - [ ] Event-triggered regeneration
 - [ ] TTS synthesis + audio caching for briefings
 - [ ] "What should I do now" endpoint
-- [ ] Display app redesign around briefing (briefing primary, calendar strip, list panel)
-- [ ] Weekly Context Notes surfacing in briefings (tone-layer only, suppression honored)
+- [~] Display app redesign around briefing — **briefing is the default view; full layout redesign (calendar strip + list panel) still pending**
+- [x] Weekly Context Notes surfacing in briefings (tone-layer + suppression honored in generator prompt)
 
 ## Phase 3 — Deadline awareness
 

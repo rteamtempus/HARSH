@@ -19,8 +19,9 @@ Last updated: 2026-05-24
 - [ ] **Deploy edge functions** as features land:
   - [ ] `npx supabase functions deploy llm` (brain-dump backend)
   - [ ] `npx supabase functions deploy tts` (voice synthesis)
-- [ ] Schedule the context-note reaper (`reap_expired_context_notes()`) via pg_cron — Phase 1 wiring (TODO from current Claude work)
-- [ ] Schedule briefing regeneration (Phase 2 — not yet needed)
+  - [ ] `npx supabase functions deploy generate-briefing` (daily/weekly/monthly briefings)
+- [ ] Schedule the context-note reaper (`reap_expired_context_notes()`) via pg_cron
+- [ ] Schedule briefing regeneration via pg_cron — 6am / 12pm / 4:30pm / 7:30pm per FEATURES.md §4.5
 
 ---
 

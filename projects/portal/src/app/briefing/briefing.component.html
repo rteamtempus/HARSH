@@ -1,0 +1,80 @@
+<main class="wrap">
+  <header>
+    <a routerLink="/" class="back" aria-label="Back to home">←</a>
+    <h1>Briefing</h1>
+    <div class="actions">
+      <div class="seg">
+        <button [class.active]="type() === 'daily'" (click)="setType('daily')">Today</button>
+        <button [class.active]="type() === 'weekly'" (click)="setType('weekly')">Week</button>
+        <button [class.active]="type() === 'monthly'" (click)="setType('monthly')">Month</button>
+      </div>
+      <button class="refresh" (click)="refresh()" [disabled]="busy()">
+        @if (busy()) { <span class="spinner"></span> Generating… }
+        @else { ↻ Refresh }
+      </button>
+    </div>
+  </header>
+
+  @if (current(); as b) {
+    <article class="briefing">
+      @if (b.content.hero) {
+        <p class="hero">{{ b.content.hero }}</p>
+      }
+
+      @if (b.content.today_shape.length) {
+        <section>
+          <h2>{{ type() === 'daily' ? 'Today' : type() === 'weekly' ? "This week's shape" : 'This month' }}</h2>
+          <ul>
+            @for (line of b.content.today_shape; track line) { <li>{{ line }}</li> }
+          </ul>
+        </section>
+      }
+
+      @if (b.content.needs_attention.length) {
+        <section>
+          <h2>Needs attention</h2>
+          <ul>
+            @for (line of b.content.needs_attention; track line) { <li>{{ line }}</li> }
+          </ul>
+        </section>
+      }
+
+      @if (b.content.right_now.length) {
+        <section class="right-now">
+          <h2>Right now</h2>
+          <ul>
+            @for (line of b.content.right_now; track line) { <li>{{ line }}</li> }
+          </ul>
+        </section>
+      }
+
+      @if (b.content.heads_up.length) {
+        <section>
+          <h2>Heads up</h2>
+          <ul>
+            @for (line of b.content.heads_up; track line) { <li>{{ line }}</li> }
+          </ul>
+        </section>
+      }
+
+      @if (b.content.positive_reinforcement) {
+        <section class="positive">
+          <p>{{ b.content.positive_reinforcement }}</p>
+        </section>
+      }
+
+      <footer class="meta">
+        Updated {{ b.generated_at | date:'short' }}
+        @if (b.model) { · {{ b.model }} }
+        @if (b.latency_ms) { · {{ b.latency_ms }}ms }
+      </footer>
+    </article>
+  } @else {
+    <p class="empty">
+      @if (busy()) { Generating your first briefing… }
+      @else { No {{ type() }} briefing yet. Tap Refresh to generate one. }
+    </p>
+  }
+
+  @if (error(); as e) { <p class="error">{{ e }}</p> }
+</main>
