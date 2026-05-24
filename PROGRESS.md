@@ -28,13 +28,13 @@ These shipped in the initial scaffold (commit `143841e`):
 ## Phase 0 — Setup
 
 - [!] Hosting setup (Vercel + Supabase production project) — **needs owner**: accounts, env vars, DNS. Note: FEATURES.md §8 picked Vercel; earlier memory said Cloudflare Pages — go with FEATURES.md.
-- [~] AI adapter layer scaffolding — **interfaces done, concrete impls pending**
+- [~] AI adapter layer scaffolding — **LLM concrete impl done; TTS/STT pending API key**
   - [x] `LlmAdapter` interface ([projects/data-access/src/lib/adapters/llm.adapter.ts](projects/data-access/src/lib/adapters/llm.adapter.ts))
   - [x] `TtsAdapter` interface ([projects/data-access/src/lib/adapters/tts.adapter.ts](projects/data-access/src/lib/adapters/tts.adapter.ts))
   - [x] `SttAdapter` interface ([projects/data-access/src/lib/adapters/stt.adapter.ts](projects/data-access/src/lib/adapters/stt.adapter.ts))
   - [x] `TranscriptionAdapter` interface ([projects/data-access/src/lib/adapters/transcription.adapter.ts](projects/data-access/src/lib/adapters/transcription.adapter.ts))
-  - [ ] Concrete Gemini LLM adapter (wrap existing `ai-intent` edge function)
-  - [ ] Concrete Google Chirp 3 HD TTS adapter (needs Edge Function proxy + API key)
+  - [x] Concrete Gemini LLM adapter ([gemini-llm.adapter.ts](projects/data-access/src/lib/adapters/gemini-llm.adapter.ts)) + new `llm` Edge Function ([supabase/functions/llm/index.ts](supabase/functions/llm/index.ts)) — **needs `supabase functions deploy llm` from owner**
+  - [ ] Concrete Google Chirp 3 HD TTS adapter (needs Edge Function proxy + `GOOGLE_CLOUD_API_KEY`)
   - [ ] Concrete browser/cloud STT adapters
 - [x] CLAUDE.md initial scaffolding
 - [~] "How to Use" page scaffolding — **page exists, hamburger menu entry pending**
@@ -49,21 +49,28 @@ These shipped in the initial scaffold (commit `143841e`):
 ## Phase 1 — Foundation rework
 
 - [~] List item metadata — **columns added, UI pending** ([20260524000000_phase1_primitives.sql](supabase/migrations/20260524000000_phase1_primitives.sql))
-- [~] Routines primitive — **schema landed, services + actions + UI pending**
+- [~] Routines primitive — **service layer done, UI pending**
   - [x] Schema (`routines`, `routine_history`)
   - [x] Pause-with-duration (`pause_until`, `pause_reason`)
-  - [ ] Complete / Skip / Snooze / Pause actions (service layer)
-  - [ ] `next_due` advancement (Postgres or Edge Function)
-  - [ ] Fair rotation tracking flag (column exists; logic pending)
+  - [x] Complete / Skip / Snooze / Pause / Resume actions ([RoutineService](projects/data-access/src/lib/routine.service.ts) + atomic Postgres RPCs in [20260524020000](supabase/migrations/20260524020000_routine_actions_and_events_assignee.sql))
+  - [x] `next_due` advancement for **interval** cadence (calendar cadence rrule expansion deferred — caller can pass `nextDue` explicitly)
+  - [x] Fair rotation column wired through (briefing-side surfacing pending in Phase 2)
   - [ ] Pattern detection: list-item-to-routine suggestion at 4+ occurrences (Phase 1 stretch)
-- [~] Household memory / facts — **schema landed, portal CRUD pending** (`household_facts` table)
-- [~] Profile model (for daughter / dependents) + polymorphic `assignee` on items/events/routines
+  - [ ] Portal CRUD UI
+- [~] Household memory / facts — **service done, portal CRUD pending**
+  - [x] Schema (`household_facts`)
+  - [x] [HouseholdFactsService](projects/data-access/src/lib/household-facts.service.ts) with upsert-by-key + ILIKE search for RAG retrieval
+  - [ ] Portal CRUD UI
+- [~] Profile model + polymorphic `assignee` on items/events/routines
   - [x] `profiles` table + `assignee_member_id`/`assignee_profile_id` on `list_items` and `routines`
-  - [ ] Add same polymorphic assignee to `events` (currently only `owner_member_id`)
+  - [x] `assignee_profile_id` on `events` ([20260524020000](supabase/migrations/20260524020000_routine_actions_and_events_assignee.sql))
+  - [x] [ProfileService](projects/data-access/src/lib/profile.service.ts)
   - [ ] Portal CRUD for profiles
-- [~] Weekly Context Notes — **data layer + reaper landed, UI pending**
+- [~] Weekly Context Notes — **data + service + reaper landed, UI pending; reaper schedule pending**
   - [x] Schema with `expires_at` (max 30 days, enforced via check constraint)
-  - [x] Auto-delete RPC `reap_expired_context_notes()` (wire to pg_cron / scheduled function)
+  - [x] [ContextNotesService](projects/data-access/src/lib/context-notes.service.ts) with client-side duration clamping
+  - [x] Auto-delete RPC `reap_expired_context_notes()`
+  - [ ] **Schedule the reaper via pg_cron** (in DEV_SETUP.md infra checklist)
   - [ ] Portal CRUD screen in hamburger menu
 - [ ] Mobile UI redesign with **brain dump home page** (replaces current home)
   - [ ] Single text input + transcription toggle

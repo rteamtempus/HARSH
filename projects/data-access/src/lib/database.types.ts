@@ -197,6 +197,7 @@ export type Database = {
       events: {
         Row: {
           all_day: boolean
+          assignee_profile_id: string | null
           created_at: string
           ends_at: string | null
           external_id: string | null
@@ -212,6 +213,7 @@ export type Database = {
         }
         Insert: {
           all_day?: boolean
+          assignee_profile_id?: string | null
           created_at?: string
           ends_at?: string | null
           external_id?: string | null
@@ -227,6 +229,7 @@ export type Database = {
         }
         Update: {
           all_day?: boolean
+          assignee_profile_id?: string | null
           created_at?: string
           ends_at?: string | null
           external_id?: string | null
@@ -241,6 +244,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "events_assignee_profile_id_fkey"
+            columns: ["assignee_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_family_id_fkey"
             columns: ["family_id"]
@@ -877,6 +887,50 @@ export type Database = {
           }
       current_user_family_ids: { Args: never; Returns: string[] }
       reap_expired_context_notes: { Args: never; Returns: number }
+      routine_advance_next_due: {
+        Args: {
+          p_anchor?: string
+          p_explicit_next_due?: string
+          p_routine_id: string
+        }
+        Returns: string
+      }
+      routine_complete: {
+        Args: {
+          p_member_id?: string
+          p_next_due?: string
+          p_note?: string
+          p_routine_id: string
+        }
+        Returns: string
+      }
+      routine_default_lead_days: {
+        Args: { p_routine: Database["public"]["Tables"]["routines"]["Row"] }
+        Returns: number
+      }
+      routine_pause: {
+        Args: { p_reason?: string; p_routine_id: string; p_until: string }
+        Returns: undefined
+      }
+      routine_resume: { Args: { p_routine_id: string }; Returns: undefined }
+      routine_skip: {
+        Args: {
+          p_member_id?: string
+          p_next_due?: string
+          p_note?: string
+          p_routine_id: string
+        }
+        Returns: string
+      }
+      routine_snooze: {
+        Args: {
+          p_days?: number
+          p_member_id?: string
+          p_note?: string
+          p_routine_id: string
+        }
+        Returns: string
+      }
       should_show_release_popup: { Args: never; Returns: boolean }
       unread_releases: {
         Args: never
