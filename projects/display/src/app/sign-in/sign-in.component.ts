@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from 'data-access';
@@ -15,31 +15,35 @@ import { AuthService } from 'data-access';
   templateUrl: './sign-in.component.html',
   styleUrl: './sign-in.component.scss',
 })
-export class DisplaySignInComponent {
+export class DisplaySignInComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
   email = '';
-  code = '';
-  readonly stage = signal<'email' | 'code'>('email');
+  readonly stage = signal<'email' | 'sent'>('email');
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
 
-  async sendCode(): Promise<void> {
-    this.error.set(null); this.busy.set(true);
-    try {
-      await this.auth.sendOtp(this.email.trim().toLowerCase());
-      this.stage.set('code');
-    } catch (e: any) { this.error.set(e?.message ?? 'Could not send'); }
-    finally { this.busy.set(false); }
+  constructor() {
+    effect(async () => {
+      if (this.auth.session()) await this.router.navigateByUrl('/');
+    });
   }
 
-  async verifyCode(): Promise<void> {
-    this.error.set(null); this.busy.set(true);
+  ngOnInit(): void {
+    if (this.auth.session()) void this.router.navigateByUrl('/');
+  }
+
+  async sendLink(): Promise<void> {
+    this.error.set(null);
+    this.busy.set(true);
     try {
-      await this.auth.verifyOtp(this.email.trim().toLowerCase(), this.code.trim());
-      await this.router.navigateByUrl('/');
-    } catch (e: any) { this.error.set(e?.message ?? 'Invalid code'); }
-    finally { this.busy.set(false); }
+      await this.auth.sendMagicLink(this.email.trim().toLowerCase());
+      this.stage.set('sent');
+    } catch (e: any) {
+      this.error.set(e?.message ?? 'Could not send sign-in link');
+    } finally {
+      this.busy.set(false);
+    }
   }
 }

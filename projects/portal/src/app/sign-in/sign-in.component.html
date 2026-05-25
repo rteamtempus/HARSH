@@ -3,7 +3,7 @@
   <p class="tag">Holly · Ayla · Rory · Stevie · Hazel</p>
 
   @if (stage() === 'email') {
-    <form (submit)="$event.preventDefault(); sendCode()">
+    <form (submit)="$event.preventDefault(); sendLink()">
       <label>
         Email
         <input
@@ -16,30 +16,15 @@
         />
       </label>
       <button type="submit" [disabled]="busy()">
-        {{ busy() ? 'Sending…' : 'Send code' }}
+        {{ busy() ? 'Sending…' : 'Send sign-in link' }}
       </button>
     </form>
   } @else {
-    <form (submit)="$event.preventDefault(); verifyCode()">
-      <p>Enter the 6-digit code we emailed to <strong>{{ email }}</strong>.</p>
-      <label>
-        Code
-        <input
-          type="text"
-          inputmode="numeric"
-          autocomplete="one-time-code"
-          pattern="[0-9]*"
-          maxlength="6"
-          [(ngModel)]="code"
-          name="code"
-          required
-        />
-      </label>
-      <button type="submit" [disabled]="busy()">
-        {{ busy() ? 'Verifying…' : 'Sign in' }}
-      </button>
+    <div class="sent">
+      <p>Check <strong>{{ email }}</strong> for a sign-in link.</p>
+      <p class="hint">The link will sign you in automatically — no code to type. Leave this tab open.</p>
       <button type="button" class="link" (click)="stage.set('email')">Use a different email</button>
-    </form>
+    </div>
   }
 
   @if (error(); as e) { <p class="error">{{ e }}</p> }

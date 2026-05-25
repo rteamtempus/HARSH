@@ -24,21 +24,22 @@ export class AuthService {
     });
   }
 
-  /** Send a 6-digit OTP + magic link to the email. */
-  async sendOtp(email: string): Promise<void> {
+  /**
+   * Send a magic link. The email contains a clickable URL that lands back on
+   * `redirectTo`; the Supabase JS client (with `detectSessionInUrl: true`,
+   * which is the default) picks the tokens out of the URL hash and creates
+   * the session automatically — no code-entry step.
+   *
+   * Switched from OTP (6-digit code) to magic link to match the owner's other
+   * Supabase project and reduce email volume against the built-in rate cap.
+   */
+  async sendMagicLink(email: string): Promise<void> {
     const { error } = await this.supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true },
-    });
-    if (error) throw error;
-  }
-
-  /** Verify the 6-digit code the user typed in. */
-  async verifyOtp(email: string, token: string): Promise<void> {
-    const { error } = await this.supabase.auth.verifyOtp({
-      email,
-      token,
-      type: 'email',
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+      },
     });
     if (error) throw error;
   }
