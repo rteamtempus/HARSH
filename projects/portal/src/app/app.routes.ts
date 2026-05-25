@@ -58,6 +58,12 @@ export const routes: Routes = [
       import('./meeting/meeting-review.component').then((m) => m.MeetingReviewComponent),
   },
   {
+    path: 'auth/google/callback',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./auth/google-callback.component').then((m) => m.GoogleCallbackComponent),
+  },
+  {
     path: 'calendar',
     canActivate: [authGuard],
     loadComponent: () => import('./calendar/calendar.component').then((m) => m.CalendarComponent),

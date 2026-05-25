@@ -16,6 +16,7 @@ import {
   detectTz,
   generatePassword,
 } from 'data-access';
+import { environment } from '../../environments/environment';
 
 // Pragmatic shortlist — full IANA db is 500+ entries, this covers everywhere a US/CA family is likely to live.
 const COMMON_TIMEZONES = [
@@ -66,6 +67,7 @@ export class SettingsComponent implements OnInit {
   readonly calError = signal<string | null>(null);
   readonly syncing = signal<string | null>(null);
   readonly syncingAll = signal(false);
+  readonly googleClientId = environment.googleOauthClientId;
   readonly editingCalId = signal<string | null>(null);
   readonly editCal = { name: '', url: '', color: DEFAULT_COLORS[0] };
 
@@ -330,6 +332,18 @@ export class SettingsComponent implements OnInit {
     }
   }
 
+  connectGoogle(): void {
+    if (!this.googleClientId) {
+      this.calError.set('Google OAuth client id is not configured in this build.');
+      return;
+    }
+    const url = this.calendars.googleOauthUrl({
+      clientId: this.googleClientId,
+      redirectUri: `${window.location.origin}/auth/google/callback`,
+    });
+    window.location.assign(url);
+  }
+
   async syncAll(): Promise<void> {
     const fam = this.family.family();
     if (!fam) return;
@@ -348,7 +362,9 @@ export class SettingsComponent implements OnInit {
   async sync(id: string): Promise<void> {
     this.syncing.set(id);
     try {
-      await this.calendars.syncAccount(id);
+      const acc = this.calendars.accounts().find((a) => a.id === id);
+      if (!acc) throw new Error('account not found');
+      await this.calendars.syncAccount({ id: acc.id, kind: acc.kind });
       const fam = this.family.family();
       if (fam) await this.calendars.loadAccounts(fam.id);
     } catch (err: any) {

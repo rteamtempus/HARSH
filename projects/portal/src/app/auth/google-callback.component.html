@@ -1,0 +1,13 @@
+<main class="wrap">
+  <h1>Connecting Google Calendar…</h1>
+  @if (busy()) {
+    <p>One moment — exchanging authorization with Google.</p>
+  }
+  @if (success(); as email) {
+    <p class="ok">Connected <strong>{{ email }}</strong>. Returning to Settings…</p>
+  }
+  @if (error(); as e) {
+    <p class="error">{{ e }}</p>
+    <a routerLink="/settings">Back to Settings</a>
+  }
+</main>

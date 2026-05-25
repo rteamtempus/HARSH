@@ -1,0 +1,7 @@
+:host { display:block; min-height:100dvh; background:var(--bg-canvas); color:var(--text-primary); }
+.wrap { max-width:36rem; margin:0 auto; padding:var(--s-7) var(--s-5); }
+h1 { font-family:var(--font-display); margin:0 0 var(--s-3); font-size:var(--fs-h2); }
+p { line-height:1.5; }
+.ok { color:var(--success); }
+.error { color:var(--danger); margin-bottom:var(--s-2); }
+a { color:var(--accent); }

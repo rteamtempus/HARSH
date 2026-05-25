@@ -85,7 +85,26 @@ export class EventService {
       .select('*')
       .single();
     if (error) throw error;
+    // Best-effort push to Google. Fire-and-forget — the local row is already
+    // there; if the push fails (no google account, token revoked, etc.) the
+    // event still works in HARSH. gcal-push no-ops gracefully when there's
+    // no google account connected.
+    void this.pushToGoogle(data.id);
     return data;
+  }
+
+  /**
+   * Push a HARSH-native event to the family's connected Google calendar.
+   * Called automatically by create(); safe to call again on update for the
+   * same event (gcal-push PATCHes when external_id is already set).
+   */
+  async pushToGoogle(eventId: string): Promise<void> {
+    try {
+      await this.supabase.functions.invoke('gcal-push', { body: { event_id: eventId } });
+    } catch {
+      // Swallow — best-effort. The function logs failures in ai_log-style
+      // server-side; surfacing here would be noisier than helpful.
+    }
   }
 
   private apply(payload: { eventType: string; new: any; old: any }): void {

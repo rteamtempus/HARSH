@@ -38,7 +38,8 @@ Deno.serve(async (req: Request) => {
 
   // When called by an authenticated user (display voice command), only sync
   // their own family. When called by cron, sync every family.
-  let query = admin.from('calendar_accounts').select('id, family_id').eq('kind', 'ics');
+  // ICS accounts go to sync-ics; google accounts go to gcal-sync.
+  let query = admin.from('calendar_accounts').select('id, family_id, kind').in('kind', ['ics', 'google']);
   if (!isCronAuthed && body.family_id) {
     query = query.eq('family_id', body.family_id);
   }
@@ -52,9 +53,10 @@ Deno.serve(async (req: Request) => {
     try {
       // Authorize the inner call with whichever credential we have. For cron,
       // that's the service-role bearer; for a user-triggered call, pass their
-      // JWT straight through so RLS still applies on the sync-ics side.
+      // JWT straight through so RLS still applies on the sync side.
       const innerAuth = isCronAuthed ? `Bearer ${serviceKey}` : authHeader;
-      const resp = await fetch(`${supabaseUrl}/functions/v1/sync-ics`, {
+      const fn = acc.kind === 'google' ? 'gcal-sync' : 'sync-ics';
+      const resp = await fetch(`${supabaseUrl}/functions/v1/${fn}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'authorization': innerAuth },
         body: JSON.stringify({ calendar_account_id: acc.id }),

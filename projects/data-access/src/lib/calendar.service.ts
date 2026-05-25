@@ -64,13 +64,59 @@ export class CalendarService {
     this.accounts.update((list) => list.filter((a) => a.id !== id));
   }
 
-  /** Fires the sync edge function for one account. Returns the function's response. */
-  async syncAccount(id: string): Promise<{ inserted: number; updated: number; deleted: number }> {
-    const { data, error } = await this.supabase.functions.invoke('sync-ics', {
-      body: { calendar_account_id: id },
+  /**
+   * Fires the sync edge function for one account. Routes by kind so the same
+   * call works for ICS, Google, etc.
+   */
+  async syncAccount(account: { id: string; kind: string }): Promise<unknown> {
+    const fn = account.kind === 'google' ? 'gcal-sync' : 'sync-ics';
+    const { data, error } = await this.supabase.functions.invoke(fn, {
+      body: { calendar_account_id: account.id },
     });
     if (error) throw error;
-    return data as any;
+    return data;
+  }
+
+  /**
+   * Build the Google OAuth authorization URL. Caller redirects to it; Google
+   * redirects back to `redirectUri` with `?code=...` which the callback route
+   * passes to `exchangeGoogleCode`.
+   */
+  googleOauthUrl(input: { clientId: string; redirectUri: string; state?: string }): string {
+    const params = new URLSearchParams({
+      client_id: input.clientId,
+      redirect_uri: input.redirectUri,
+      response_type: 'code',
+      scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email',
+      // offline + consent guarantees a refresh_token even on repeat grants.
+      access_type: 'offline',
+      prompt: 'consent',
+      state: input.state ?? '',
+    });
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  }
+
+  /**
+   * Hand the authorization code to the edge function. The function exchanges
+   * it server-side (so the client secret never reaches the browser), creates
+   * a calendar_accounts row, and returns the new id.
+   */
+  async exchangeGoogleCode(input: { code: string; redirectUri: string; name?: string; color?: string }) {
+    const { data, error } = await this.supabase.functions.invoke<{
+      calendar_account_id: string;
+      external_calendar_id: string;
+      email: string;
+    }>('gcal-oauth-exchange', {
+      body: {
+        code: input.code,
+        redirect_uri: input.redirectUri,
+        name: input.name,
+        color: input.color,
+      },
+    });
+    if (error) throw error;
+    if (!data) throw new Error('empty response');
+    return data;
   }
 
   /**

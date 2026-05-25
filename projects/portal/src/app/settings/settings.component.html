@@ -185,13 +185,19 @@
       sync via OAuth is coming next.
     </p>
 
-    @if (calendars.accounts().length > 1) {
-      <div class="sync-all-row">
+    <div class="sync-all-row">
+      <button type="button" class="primary" (click)="connectGoogle()" [disabled]="!googleClientId">
+        + Connect Google Calendar
+      </button>
+      @if (!googleClientId) {
+        <span class="hint inline">Set GOOGLE_OAUTH_CLIENT_ID to enable.</span>
+      }
+      @if (calendars.accounts().length > 1) {
         <button type="button" class="ghost" (click)="syncAll()" [disabled]="syncingAll()">
-          {{ syncingAll() ? 'Syncing all…' : '↻ Sync all calendars' }}
+          {{ syncingAll() ? 'Syncing all…' : '↻ Sync all' }}
         </button>
-      </div>
-    }
+      }
+    </div>
 
     <ul class="rows">
       @for (c of calendars.accounts(); track c.id) {

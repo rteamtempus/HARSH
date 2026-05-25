@@ -148,6 +148,7 @@ export type Database = {
           color: string
           created_at: string
           credentials_encrypted: string | null
+          external_calendar_id: string | null
           family_id: string
           ics_url: string | null
           id: string
@@ -157,11 +158,16 @@ export type Database = {
           last_synced_at: string | null
           member_id: string | null
           name: string
+          oauth_access_token: string | null
+          oauth_expires_at: string | null
+          oauth_refresh_token: string | null
+          sync_token: string | null
         }
         Insert: {
           color?: string
           created_at?: string
           credentials_encrypted?: string | null
+          external_calendar_id?: string | null
           family_id: string
           ics_url?: string | null
           id?: string
@@ -171,11 +177,16 @@ export type Database = {
           last_synced_at?: string | null
           member_id?: string | null
           name: string
+          oauth_access_token?: string | null
+          oauth_expires_at?: string | null
+          oauth_refresh_token?: string | null
+          sync_token?: string | null
         }
         Update: {
           color?: string
           created_at?: string
           credentials_encrypted?: string | null
+          external_calendar_id?: string | null
           family_id?: string
           ics_url?: string | null
           id?: string
@@ -185,6 +196,10 @@ export type Database = {
           last_synced_at?: string | null
           member_id?: string | null
           name?: string
+          oauth_access_token?: string | null
+          oauth_expires_at?: string | null
+          oauth_refresh_token?: string | null
+          sync_token?: string | null
         }
         Relationships: [
           {

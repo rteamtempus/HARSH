@@ -4,7 +4,10 @@
 // to materialise the file at build time from project-level env vars.
 //
 // Required env: SUPABASE_URL, SUPABASE_ANON_KEY
-// Optional env: NODE_ENV (defaults to 'development' for local, set to 'production' in Vercel)
+// Optional env:
+//   GOOGLE_OAUTH_CLIENT_ID  — used by the "Connect Google Calendar" button to
+//                             build the auth URL (the secret stays server-side).
+//   NODE_ENV (defaults to 'development' for local, set to 'production' in Vercel)
 //
 // Idempotency: if SUPABASE_URL is unset (typical local dev), the script no-ops so it
 // doesn't clobber the developer's local file. Vercel always sets the env vars.
@@ -18,6 +21,7 @@ const repoRoot = resolve(__dirname, '..');
 
 const url = process.env.SUPABASE_URL;
 const anon = process.env.SUPABASE_ANON_KEY;
+const googleOauthClientId = process.env.GOOGLE_OAUTH_CLIENT_ID ?? '';
 
 if (!url || !anon) {
   // Local dev path: trust the existing files. Bail with a hint if they're missing.
@@ -43,6 +47,7 @@ export const environment = {
   production: ${production},
   supabaseUrl: ${JSON.stringify(url)},
   supabaseAnonKey: ${JSON.stringify(anon)},
+  googleOauthClientId: ${JSON.stringify(googleOauthClientId)},
 };
 `;
 
