@@ -18,6 +18,7 @@ export type Intent =
       anchor_date: string;
       confidence?: number;
     }
+  | { action: 'calendar.sync_all'; confidence?: number }
   | { action: 'unknown'; reason: string };
 
 export interface IntentResult { intent: Intent; ok: boolean; error?: string }

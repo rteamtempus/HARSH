@@ -65,6 +65,7 @@ export class SettingsComponent implements OnInit {
   readonly calBusy = signal(false);
   readonly calError = signal<string | null>(null);
   readonly syncing = signal<string | null>(null);
+  readonly syncingAll = signal(false);
   readonly editingCalId = signal<string | null>(null);
   readonly editCal = { name: '', url: '', color: DEFAULT_COLORS[0] };
 
@@ -326,6 +327,21 @@ export class SettingsComponent implements OnInit {
       this.calError.set(err?.message ?? 'Save failed');
     } finally {
       this.calBusy.set(false);
+    }
+  }
+
+  async syncAll(): Promise<void> {
+    const fam = this.family.family();
+    if (!fam) return;
+    this.syncingAll.set(true);
+    this.calError.set(null);
+    try {
+      await this.calendars.syncAll(fam.id);
+      await this.calendars.loadAccounts(fam.id);
+    } catch (err: any) {
+      this.calError.set(err?.message ?? 'Sync all failed');
+    } finally {
+      this.syncingAll.set(false);
     }
   }
 

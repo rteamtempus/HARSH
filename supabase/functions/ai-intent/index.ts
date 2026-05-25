@@ -44,6 +44,7 @@ type Intent =
   | (IntentBase & { action: 'list.remove_item'; list: string; text: string })
   | (IntentBase & { action: 'view.show_list'; list: string; resolved_list_id?: string; resolved_list_name?: string })
   | (IntentBase & { action: 'calendar.show'; view: 'day' | 'week' | 'month'; anchor_date: string })
+  | (IntentBase & { action: 'calendar.sync_all' })
   | (IntentBase & { action: 'unknown'; reason: string });
 
 interface ParsedResponse {
@@ -63,7 +64,7 @@ const RESPONSE_SCHEMA = {
             type: 'string',
             enum: [
               'list.add_item', 'list.check_item', 'list.remove_item',
-              'view.show_list', 'calendar.show', 'unknown',
+              'view.show_list', 'calendar.show', 'calendar.sync_all', 'unknown',
             ],
           },
           list: { type: 'string', description: 'Name or kind of list, e.g. "grocery", "todo", "Groceries"' },
@@ -103,6 +104,9 @@ Available actions:
 - list.check_item: mark an existing item as done.
 - list.remove_item: delete an existing item.
 - view.show_list: switch which list is being viewed.
+- calendar.sync_all: refresh every connected calendar. No fields.
+    Examples:
+      "sync my calendars" / "refresh the calendars" / "pull in the latest from google" → calendar.sync_all
 - calendar.show: switch the calendar view and/or jump to a date.
     Fields: view ('day' | 'week' | 'month'), anchor_date (YYYY-MM-DD).
     Examples:
@@ -229,6 +233,8 @@ async function executeIntent(
 
   // calendar.show is client-resolved — no DB writes, no list matching needed.
   if (intent.action === 'calendar.show') return;
+  // calendar.sync_all is also client-driven (display calls tick-calendar-sync).
+  if (intent.action === 'calendar.sync_all') return;
 
   const target = matchList(intent.list, lists);
   if (!target) throw new Error(`no list matching "${intent.list}"`);

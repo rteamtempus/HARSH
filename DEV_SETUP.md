@@ -24,6 +24,7 @@ Last updated: 2026-05-24
   - [ ] `npx supabase functions deploy tick-briefings` (cron orchestrator)
   - [ ] `npx supabase functions deploy transcribe-meeting` (meeting audio → transcript)
   - [ ] `npx supabase functions deploy extract-meeting` (transcript → proposals)
+  - [ ] `npx supabase functions deploy tick-calendar-sync` (hourly ICS refresh orchestrator)
 - [ ] Schedule the context-note reaper (`reap_expired_context_notes()`) via pg_cron — see below
 - [ ] Schedule briefing regeneration via pg_cron — 6am / 12pm / 4:30pm / 7:30pm per FEATURES.md §4.5
 
@@ -72,6 +73,20 @@ select cron.schedule('briefing-morning', '0 12 * * *',  -- 06:00 CT (UTC-6) = 12
 );
 -- Repeat the same pattern for 12pm / 4:30pm / 7:30pm by changing the cron expression
 -- and the literal job name. Sunday-evening weekly: '0 1 * * 1' (Sun 19:00 CT). Monthly: '0 12 1 * *'.
+
+-- Hourly calendar sync (every hour at :15 to avoid colliding with the reaper at :05).
+select cron.schedule('calendar-sync-hourly', '15 * * * *',
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name='project_url') || '/functions/v1/tick-calendar-sync',
+    headers := jsonb_build_object(
+      'content-type','application/json',
+      'x-cron-secret',(select decrypted_secret from vault.decrypted_secrets where name='cron_secret')
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
 ```
 
 See the Supabase docs: https://supabase.com/docs/guides/database/extensions/pg_cron

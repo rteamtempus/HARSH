@@ -72,4 +72,18 @@ export class CalendarService {
     if (error) throw error;
     return data as any;
   }
+
+  /**
+   * Refresh every calendar in the family. Used by the display's voice command
+   * ("sync my calendars") and any "Sync now" button that wants to hit all
+   * accounts at once. The edge function uses the caller's JWT, so RLS still
+   * limits the loop to accounts this user can see.
+   */
+  async syncAll(familyId: string): Promise<{ synced: number; errors: Array<{ account_id: string; error: string }> }> {
+    const { data, error } = await this.supabase.functions.invoke('tick-calendar-sync', {
+      body: { family_id: familyId },
+    });
+    if (error) throw error;
+    return data as any;
+  }
 }

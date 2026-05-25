@@ -191,6 +191,10 @@ export class BoardComponent implements OnInit, OnDestroy {
         } else if (intent.action === 'calendar.show') {
           this.setView(intent.view);
           if (intent.anchor_date) this.setAnchor(parseYmd(intent.anchor_date));
+        } else if (intent.action === 'calendar.sync_all') {
+          // Fire and forget — the model already produced a spoken_reply for the
+          // user, and realtime will refresh the event list when sync writes new rows.
+          void this.calendars.syncAll(fam.id);
         }
       }
       this.showReply(res.spoken_reply);
