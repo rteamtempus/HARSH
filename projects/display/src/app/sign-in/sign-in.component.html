@@ -2,20 +2,17 @@
   <h1 class="h-display">HARSH</h1>
   <p class="muted">Display</p>
 
-  @if (stage() === 'email') {
-    <form (submit)="$event.preventDefault(); sendLink()">
-      <label>
-        Email
-        <input type="email" [(ngModel)]="email" name="email" required />
-      </label>
-      <button type="submit" [disabled]="busy()">{{ busy() ? 'Sending…' : 'Send sign-in link' }}</button>
-    </form>
-  } @else {
-    <div class="sent">
-      <p>Check <strong>{{ email }}</strong> for a sign-in link.</p>
-      <p class="muted">Click the link to sign in. Leave this screen as-is.</p>
-    </div>
-  }
+  <form (submit)="$event.preventDefault(); signIn()">
+    <label>
+      Email
+      <input type="email" [(ngModel)]="email" name="email" required />
+    </label>
+    <label>
+      Password
+      <input type="password" [(ngModel)]="password" name="password" autocomplete="current-password" required />
+    </label>
+    <button type="submit" [disabled]="busy()">{{ busy() ? 'Signing in…' : 'Sign in' }}</button>
+  </form>
 
   @if (error(); as e) { <p class="error">{{ e }}</p> }
 </main>

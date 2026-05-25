@@ -20,7 +20,7 @@ export class DisplaySignInComponent implements OnInit {
   private readonly router = inject(Router);
 
   email = '';
-  readonly stage = signal<'email' | 'sent'>('email');
+  password = '';
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -34,14 +34,13 @@ export class DisplaySignInComponent implements OnInit {
     if (this.auth.session()) void this.router.navigateByUrl('/');
   }
 
-  async sendLink(): Promise<void> {
+  async signIn(): Promise<void> {
     this.error.set(null);
     this.busy.set(true);
     try {
-      await this.auth.sendMagicLink(this.email.trim().toLowerCase());
-      this.stage.set('sent');
+      await this.auth.signInWithPassword(this.email.trim().toLowerCase(), this.password);
     } catch (e: any) {
-      this.error.set(e?.message ?? 'Could not send sign-in link');
+      this.error.set(e?.message ?? 'Sign-in failed');
     } finally {
       this.busy.set(false);
     }

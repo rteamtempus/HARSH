@@ -2,30 +2,59 @@
   <h1>HARSH</h1>
   <p class="tag">Holly · Ayla · Rory · Stevie · Hazel</p>
 
-  @if (stage() === 'email') {
-    <form (submit)="$event.preventDefault(); sendLink()">
+  <div class="seg" role="tablist">
+    <button role="tab" [class.active]="mode() === 'signIn'" (click)="setMode('signIn')">Sign in</button>
+    <button role="tab" [class.active]="mode() === 'signUp'" (click)="setMode('signUp')">Sign up</button>
+  </div>
+
+  @if (mode() === 'signIn') {
+    <form (submit)="$event.preventDefault(); signIn()">
       <label>
         Email
-        <input
-          type="email"
-          [(ngModel)]="email"
-          name="email"
-          autocomplete="email"
-          inputmode="email"
-          required
-        />
+        <input type="email" [(ngModel)]="email" name="email" autocomplete="email" required />
       </label>
-      <button type="submit" [disabled]="busy()">
-        {{ busy() ? 'Sending…' : 'Send sign-in link' }}
+      <label>
+        Password
+        <input type="password" [(ngModel)]="password" name="password" autocomplete="current-password" required />
+      </label>
+      <button type="submit" [disabled]="busy()">{{ busy() ? 'Signing in…' : 'Sign in' }}</button>
+      <button type="button" class="link" (click)="forgot()" [disabled]="busy()">
+        Forgot password? Send a sign-in link
       </button>
     </form>
   } @else {
-    <div class="sent">
-      <p>Check <strong>{{ email }}</strong> for a sign-in link.</p>
-      <p class="hint">The link will sign you in automatically — no code to type. Leave this tab open.</p>
-      <button type="button" class="link" (click)="stage.set('email')">Use a different email</button>
-    </div>
+    <form (submit)="$event.preventDefault(); signUp()">
+      <label>
+        Email
+        <input type="email" [(ngModel)]="email" name="email" autocomplete="email" required />
+      </label>
+      <label>
+        Password
+        <input
+          type="text"
+          [(ngModel)]="password"
+          name="password"
+          autocomplete="new-password"
+          required
+          minlength="8"
+        />
+      </label>
+      <div class="pw-actions">
+        <button type="button" class="ghost" (click)="generate()">Generate strong password</button>
+        @if (generated()) {
+          <button type="button" class="ghost" (click)="copy()">Copy</button>
+        }
+      </div>
+      @if (generated()) {
+        <p class="save-warning">
+          Save this password somewhere safe now — once you leave this page it's gone.
+          You can change it later from your profile.
+        </p>
+      }
+      <button type="submit" [disabled]="busy()">{{ busy() ? 'Creating…' : 'Create account' }}</button>
+    </form>
   }
 
+  @if (info(); as i) { <p class="info">{{ i }}</p> }
   @if (error(); as e) { <p class="error">{{ e }}</p> }
 </main>
