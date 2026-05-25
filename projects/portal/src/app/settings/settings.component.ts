@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import {
+  AuthService,
   CalendarAccountRow,
   CalendarService,
   FamilyService,
@@ -13,6 +14,7 @@ import {
   TTS_ADAPTER,
   TtsAdapter,
   detectTz,
+  generatePassword,
 } from 'data-access';
 
 // Pragmatic shortlist — full IANA db is 500+ entries, this covers everywhere a US/CA family is likely to live.
@@ -78,6 +80,14 @@ export class SettingsComponent implements OnInit {
   quietStart = () => this.family.quietHours().start;
   quietEnd = () => this.family.quietHours().end;
 
+  // Change password (Account section).
+  private readonly authService = inject(AuthService);
+  newPassword = '';
+  readonly pwBusy = signal(false);
+  readonly pwError = signal<string | null>(null);
+  readonly pwInfo = signal<string | null>(null);
+  readonly newPasswordGenerated = signal(false);
+
   private readonly tts = inject<TtsAdapter>(TTS_ADAPTER);
   readonly voices = signal<Array<{ id: string; label: string; description?: string; locale: string }>>([]);
   readonly voiceBusy = signal(false);
@@ -110,6 +120,44 @@ export class SettingsComponent implements OnInit {
       await this.family.updateQuietHours(this.quietStartDraft, this.quietEndDraft);
     } catch (e) { console.error(e); }
     finally { this.qhBusy.set(false); }
+  }
+
+  generatePw(): void {
+    this.newPassword = generatePassword(20);
+    this.newPasswordGenerated.set(true);
+    this.pwInfo.set('Generated. Copy it and save it somewhere safe before saving.');
+    this.pwError.set(null);
+  }
+
+  async copyPw(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(this.newPassword);
+      this.pwInfo.set('Copied to clipboard.');
+    } catch {
+      this.pwInfo.set('Copy failed — select the password manually.');
+    }
+  }
+
+  async changePassword(): Promise<void> {
+    this.pwError.set(null);
+    this.pwInfo.set(null);
+    if (this.newPassword.length < 8) {
+      this.pwError.set('Password must be at least 8 characters');
+      return;
+    }
+    this.pwBusy.set(true);
+    try {
+      await this.authService.updatePassword(this.newPassword);
+      this.pwInfo.set('Password changed. Use the new one next time you sign in.');
+      // Clear the field so it doesn't linger on screen, but keep generated flag
+      // false so the "save this" warning hides.
+      this.newPassword = '';
+      this.newPasswordGenerated.set(false);
+    } catch (e: any) {
+      this.pwError.set(e?.message ?? 'Could not change password');
+    } finally {
+      this.pwBusy.set(false);
+    }
   }
 
   async setVoice(ev: Event): Promise<void> {

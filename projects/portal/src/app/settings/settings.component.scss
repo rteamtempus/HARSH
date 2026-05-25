@@ -48,3 +48,7 @@ code { font-family:var(--font-mono); background:var(--bg-sunken); padding:0 var(
 
 .qh-inputs { display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap; }
 .qh-inputs input[type=time] { padding:var(--s-1) var(--s-2); border-radius:var(--r-md); border:1px solid var(--line-default); background:var(--bg-sunken); color:var(--text-primary); font-family:inherit; }
+
+.pw-row { display:flex; gap:var(--s-2); }
+.save-warning { color:var(--gold, #d9a85a); background:var(--bg-surface); border-left:3px solid var(--gold, #d9a85a); border-radius:var(--r-sm); padding:var(--s-2) var(--s-3); font-size:var(--fs-small); margin:0; }
+.info { color:var(--text-secondary); font-size:var(--fs-small); margin:0; }

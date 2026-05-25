@@ -48,6 +48,41 @@
     </div>
   </section>
 
+  <!-- Account -->
+  <section>
+    <h2>Account</h2>
+    <p class="hint">Change the password for your sign-in. You'll stay signed in on this device after saving.</p>
+    <form class="editor" (submit)="$event.preventDefault(); changePassword()">
+      <label>
+        New password
+        <input
+          type="text"
+          [(ngModel)]="newPassword"
+          name="newPassword"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+      </label>
+      <div class="pw-row">
+        <button type="button" class="ghost" (click)="generatePw()">Generate strong password</button>
+        @if (newPasswordGenerated()) {
+          <button type="button" class="ghost" (click)="copyPw()">Copy</button>
+        }
+      </div>
+      @if (newPasswordGenerated()) {
+        <p class="save-warning">Save this password before changing it — once you navigate away it's gone.</p>
+      }
+      <div class="row-actions">
+        <button type="submit" class="primary" [disabled]="pwBusy()">
+          {{ pwBusy() ? 'Saving…' : 'Change password' }}
+        </button>
+      </div>
+      @if (pwInfo(); as i) { <p class="info">{{ i }}</p> }
+      @if (pwError(); as e) { <p class="error">{{ e }}</p> }
+    </form>
+  </section>
+
   <!-- Voice -->
   <section>
     <h2>Voice</h2>
