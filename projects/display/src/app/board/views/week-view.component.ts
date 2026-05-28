@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { EventRow } from 'data-access';
+import { EventRow, RoutineOccurrence } from 'data-access';
 import { addDays, sameDay, startOfWeek } from '../date-utils';
 
 const DAY_START_HOUR = 6;
@@ -8,7 +8,7 @@ const DAY_END_HOUR = 23;
 const HOURS = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => DAY_START_HOUR + i);
 const TOTAL_MIN = (DAY_END_HOUR - DAY_START_HOUR) * 60;
 
-interface WeekDay { date: Date; allDay: EventRow[]; timed: EventRow[] }
+interface WeekDay { date: Date; allDay: EventRow[]; timed: EventRow[]; routines: RoutineOccurrence[] }
 
 @Component({
   selector: 'harsh-week-view',
@@ -20,6 +20,7 @@ interface WeekDay { date: Date; allDay: EventRow[]; timed: EventRow[] }
 })
 export class WeekViewComponent {
   readonly events = input.required<EventRow[]>();
+  readonly routines = input<RoutineOccurrence[]>([]);
   readonly anchor = input.required<Date>();
   readonly now = input.required<Date>();
   readonly colorFor = input.required<(e: EventRow) => string>();
@@ -29,6 +30,7 @@ export class WeekViewComponent {
   readonly days = computed<WeekDay[]>(() => {
     const start = startOfWeek(this.anchor());
     const all = this.events();
+    const occ = this.routines();
     return Array.from({ length: 7 }, (_, i) => {
       const date = addDays(start, i);
       const dayEvents = all.filter((e) => sameDay(new Date(e.starts_at), date));
@@ -36,11 +38,12 @@ export class WeekViewComponent {
         date,
         allDay: dayEvents.filter((e) => e.all_day),
         timed: dayEvents.filter((e) => !e.all_day).sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
+        routines: occ.filter((r) => sameDay(r.date, date)),
       };
     });
   });
 
-  readonly anyAllDay = computed(() => this.days().some((d) => d.allDay.length > 0));
+  readonly anyAllDay = computed(() => this.days().some((d) => d.allDay.length > 0 || d.routines.length > 0));
 
   readonly nowInRange = computed(() => {
     const n = this.now();

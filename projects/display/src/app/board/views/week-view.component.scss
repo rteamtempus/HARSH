@@ -21,6 +21,7 @@
   padding:0.1rem 0.3rem; border-radius:var(--r-sm); font-size:0.75rem; font-weight:500;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
+.all-day-chip.routine { border-left-style:dashed; border-left-color:var(--gold, #d9a85a); color:var(--text-secondary); }
 
 .time-grid {
   flex:1; min-height:0; display:grid;

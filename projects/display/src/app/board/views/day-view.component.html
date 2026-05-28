@@ -6,12 +6,15 @@
     </div>
   </div>
 
-  @if (allDay().length > 0) {
+  @if (allDay().length > 0 || dayRoutines().length > 0) {
     <div class="all-day-strip">
       <span class="strip-label">All day</span>
       <div class="strip-events">
         @for (e of allDay(); track e.id) {
           <span class="all-day-chip" [style.--cal-color]="colorFor()(e)">{{ e.title }}</span>
+        }
+        @for (r of dayRoutines(); track r.routineId) {
+          <span class="all-day-chip routine">↻ {{ r.name }}</span>
         }
       </div>
     </div>

@@ -71,11 +71,11 @@
       @if (view() === 'briefing') {
         <harsh-briefing-view [briefing]="briefings.latestDaily()" />
       } @else if (view() === 'day') {
-        <harsh-day-view [events]="events.events()" [anchor]="anchor()" [now]="nowDate()" [colorFor]="colorForFn" />
+        <harsh-day-view [events]="events.events()" [routines]="routineOccurrences()" [anchor]="anchor()" [now]="nowDate()" [colorFor]="colorForFn" />
       } @else if (view() === 'week') {
-        <harsh-week-view [events]="events.events()" [anchor]="anchor()" [now]="nowDate()" [colorFor]="colorForFn" />
+        <harsh-week-view [events]="events.events()" [routines]="routineOccurrences()" [anchor]="anchor()" [now]="nowDate()" [colorFor]="colorForFn" />
       } @else {
-        <harsh-month-view [events]="events.events()" [anchor]="anchor()" [colorFor]="colorForFn" />
+        <harsh-month-view [events]="events.events()" [routines]="routineOccurrences()" [anchor]="anchor()" [colorFor]="colorForFn" />
       }
     </section>
 

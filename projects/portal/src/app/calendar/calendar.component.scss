@@ -20,3 +20,5 @@ h1 { margin:0; font-family:var(--font-display); font-size:var(--fs-h1); }
 .title { font-weight:600; }
 .meta { font-size:var(--fs-small); color:var(--text-tertiary); }
 .meta.src { font-size:var(--fs-micro); margin-top:0.15rem; }
+.event.routine { border-left-style:dashed; border-left-color:var(--gold, #d9a85a); background:var(--bg-surface); }
+.event.routine .time { color:var(--gold, #d9a85a); font-size:var(--fs-micro); }

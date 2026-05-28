@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { SUPABASE } from './supabase.client';
 import { Database } from './database.types';
+import { initialNextDue } from './routine-occurrences';
 
 export type RoutineRow = Database['public']['Tables']['routines']['Row'];
 export type RoutineInsert = Database['public']['Tables']['routines']['Insert'];
@@ -52,9 +53,21 @@ export class RoutineService {
   }
 
   async create(input: RoutineInsert): Promise<RoutineRow> {
+    // Compute an initial next_due so the routine surfaces in briefings + the
+    // calendar right away, rather than staying invisible until first completion.
+    const withDue: RoutineInsert = input.next_due
+      ? input
+      : {
+          ...input,
+          next_due: initialNextDue({
+            cadence_type: input.cadence_type,
+            interval_days: input.interval_days,
+            cadence_rrule: input.cadence_rrule,
+          }) ?? undefined,
+        };
     const { data, error } = await this.supabase
       .from('routines')
-      .insert(input)
+      .insert(withDue)
       .select('*')
       .single();
     if (error) throw error;

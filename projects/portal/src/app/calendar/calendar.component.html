@@ -7,12 +7,12 @@
     <a routerLink="/settings" class="ghost">Manage calendars</a>
   </header>
 
-  @if (events.events().length === 0) {
+  @if (grouped().length === 0) {
     <p class="empty">
-      No events yet. @if (calendars.accounts().length === 0) {
-        Connect a calendar in <a routerLink="/settings">Settings</a> to get started.
+      Nothing scheduled. @if (calendars.accounts().length === 0) {
+        Connect a calendar in <a routerLink="/settings">Settings</a>, or add routines and events to see them here.
       } @else {
-        Nothing scheduled in the next 60 days.
+        Nothing in the next 60 days.
       }
     </p>
   } @else {
@@ -37,6 +37,15 @@
                   <div class="title">{{ e.title }}</div>
                   @if (e.location) { <div class="meta">{{ e.location }}</div> }
                   @if (sourceLabel(e); as src) { <div class="meta src">{{ src }}</div> }
+                </div>
+              </li>
+            }
+            @for (r of day.routines; track r.name) {
+              <li class="event routine">
+                <div class="time">↻ routine</div>
+                <div class="body">
+                  <div class="title">{{ r.name }}</div>
+                  @if (r.category) { <div class="meta">{{ r.category }}</div> }
                 </div>
               </li>
             }

@@ -26,3 +26,4 @@
 }
 .dot-time { font-variant-numeric:tabular-nums; opacity:0.85; font-weight:600; flex:none; }
 .dot-title { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; font-weight:500; }
+.dot.routine { background:transparent; color:var(--gold, #d9a85a); border:1px dashed var(--gold, #d9a85a); }

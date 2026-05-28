@@ -9,6 +9,7 @@
 .strip-label { font-size:0.7rem; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.05em; width:3.5rem; flex:none; }
 .strip-events { flex:1; min-width:0; display:flex; flex-wrap:wrap; gap:0.3rem; }
 .all-day-chip { background:var(--bg-raised); border-left:3px solid var(--cal-color, var(--accent)); padding:0.15rem 0.4rem; border-radius:var(--r-sm); font-size:0.85rem; font-weight:500; }
+.all-day-chip.routine { border-left-style:dashed; border-left-color:var(--gold, #d9a85a); color:var(--text-secondary); }
 
 .time-grid { flex:1; min-height:0; display:grid; grid-template-columns:3.5rem 1fr; gap:var(--s-2); overflow:hidden; }
 .hours, .day-col { display:flex; flex-direction:column; min-height:0; }

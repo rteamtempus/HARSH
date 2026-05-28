@@ -18,6 +18,11 @@
               <span class="dot-title">{{ e.title }}</span>
             </li>
           }
+          @for (r of c.routines; track r.routineId) {
+            <li class="dot routine" [title]="r.name">
+              <span class="dot-title">↻ {{ r.name }}</span>
+            </li>
+          }
         </ul>
       </div>
     }

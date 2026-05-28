@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { EventRow } from 'data-access';
+import { EventRow, RoutineOccurrence } from 'data-access';
 import { sameDay } from '../date-utils';
 
 const DAY_START_HOUR = 6;
@@ -18,12 +18,15 @@ const TOTAL_MIN = (DAY_END_HOUR - DAY_START_HOUR) * 60;
 })
 export class DayViewComponent {
   readonly events = input.required<EventRow[]>();
+  readonly routines = input<RoutineOccurrence[]>([]);
   readonly anchor = input.required<Date>();
   readonly now = input.required<Date>();
   readonly colorFor = input.required<(e: EventRow) => string>();
 
   readonly hours = HOURS;
 
+  readonly dayRoutines = computed(() =>
+    this.routines().filter((r) => sameDay(r.date, this.anchor())));
   readonly relevant = computed(() => this.events().filter((e) => sameDay(new Date(e.starts_at), this.anchor())));
   readonly allDay = computed(() => this.relevant().filter((e) => e.all_day));
   readonly timed = computed(() => this.relevant().filter((e) => !e.all_day).sort((a, b) => a.starts_at.localeCompare(b.starts_at)));

@@ -21,6 +21,9 @@
           @for (e of d.allDay; track e.id) {
             <span class="all-day-chip" [style.--cal-color]="colorFor()(e)">{{ e.title }}</span>
           }
+          @for (r of d.routines; track r.routineId) {
+            <span class="all-day-chip routine">↻ {{ r.name }}</span>
+          }
         </div>
       }
     </div>

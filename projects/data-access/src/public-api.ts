@@ -11,6 +11,7 @@ export * from './lib/calendar.service';
 export * from './lib/event.service';
 export * from './lib/release.service';
 export * from './lib/routine.service';
+export * from './lib/routine-occurrences';
 export * from './lib/profile.service';
 export * from './lib/household-facts.service';
 export * from './lib/context-notes.service';

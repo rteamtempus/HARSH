@@ -11,8 +11,11 @@ import {
   ListItemRow,
   ListRow,
   ListService,
+  RoutineOccurrence,
+  RoutineService,
   ThemeService,
   VoiceService,
+  occurrencesForRoutines,
 } from 'data-access';
 import { DayViewComponent } from './views/day-view.component';
 import { WeekViewComponent } from './views/week-view.component';
@@ -47,6 +50,7 @@ export class BoardComponent implements OnInit, OnDestroy {
   protected readonly voice = inject(VoiceService);
   protected readonly theme = inject(ThemeService);
   protected readonly briefings = inject(BriefingService);
+  protected readonly routines = inject(RoutineService);
   private readonly ai = inject(AiService);
   private readonly router = inject(Router);
 
@@ -88,6 +92,15 @@ export class BoardComponent implements OnInit, OnDestroy {
   });
   readonly openItems = computed(() => this.allItems().filter((i) => !i.checked));
   readonly checkedItems = computed(() => this.allItems().filter((i) => i.checked));
+
+  // Routine occurrences across a generous window; the views filter to their
+  // own visible days. Recomputed whenever routines or the anchor change.
+  readonly routineOccurrences = computed<RoutineOccurrence[]>(() => {
+    const anchor = this.anchor();
+    const from = new Date(anchor.getFullYear(), anchor.getMonth() - 1, 1);
+    const to = new Date(anchor.getFullYear(), anchor.getMonth() + 2, 0);
+    return occurrencesForRoutines(this.routines.routines(), from, to);
+  });
 
   constructor() {
     effect(() => {
@@ -133,6 +146,7 @@ export class BoardComponent implements OnInit, OnDestroy {
         this.lists.loadLists(fam.id),
         this.calendars.loadAccounts(fam.id),
         this.briefings.load(fam.id),
+        this.routines.load(fam.id),
       ]);
       this.accountById.set(new Map(accounts.map((a) => [a.id, a])));
       const todo = lists.find((l) => l.kind === 'todo') ?? lists[0];
@@ -151,6 +165,7 @@ export class BoardComponent implements OnInit, OnDestroy {
     this.lists.unsubscribe();
     this.events.unsubscribe();
     this.briefings.unsubscribe();
+    this.routines.unsubscribe();
     document.removeEventListener('fullscreenchange', this.fsListener);
   }
 
