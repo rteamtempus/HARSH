@@ -69,11 +69,40 @@ export class VoiceService {
   private maxHandle: ReturnType<typeof setTimeout> | null = null;
   private lastFinalLen = 0;
 
+  // Screen Wake Lock — keeps the phone awake while the mic is live so the
+  // screen doesn't sleep mid-sentence. Auto-released by the browser when the
+  // tab hides, so we re-acquire on visibilitychange if we're still listening.
+  private wakeLock: WakeLockSentinel | null = null;
+
   constructor() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       const refresh = () => this.voices.set(window.speechSynthesis.getVoices());
       refresh();
       window.speechSynthesis.onvoiceschanged = refresh;
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') void this.syncWakeLock();
+      });
+    }
+  }
+
+  /** Acquire the screen wake lock when listening, release it when idle. Safe to over-call. */
+  private async syncWakeLock(): Promise<void> {
+    const wantLock = this.listening() || this.capturingCommand();
+    const nav = navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<WakeLockSentinel> } };
+    if (!nav.wakeLock) return; // Unsupported (older Safari) — fail soft.
+    try {
+      if (wantLock && !this.wakeLock) {
+        this.wakeLock = await nav.wakeLock.request('screen');
+        this.wakeLock.addEventListener?.('release', () => { this.wakeLock = null; });
+      } else if (!wantLock && this.wakeLock) {
+        await this.wakeLock.release();
+        this.wakeLock = null;
+      }
+    } catch {
+      // Wake lock can reject (e.g. low battery, not user-activated). Non-fatal.
+      this.wakeLock = null;
     }
   }
 
@@ -106,6 +135,7 @@ export class VoiceService {
       };
       const cleanup = () => {
         this.listening.set(false);
+        void this.syncWakeLock();
         this.recognition = null;
         if (wasWake) {
           this.wakeWantsRun = true;
@@ -117,6 +147,7 @@ export class VoiceService {
 
       this.transcript.set('');
       this.listening.set(true);
+      void this.syncWakeLock();
       r.start();
     });
   }
@@ -145,6 +176,7 @@ export class VoiceService {
     this.mode = 'idle';
     this.commandText = '';
     this.capturingCommand.set(false);
+    void this.syncWakeLock();
     this.lastFinalLen = 0;
     if (this.silenceHandle) { clearTimeout(this.silenceHandle); this.silenceHandle = null; }
     if (this.maxHandle) { clearTimeout(this.maxHandle); this.maxHandle = null; }
@@ -176,6 +208,7 @@ export class VoiceService {
         if (match) {
           this.mode = 'command';
           this.capturingCommand.set(true);
+          void this.syncWakeLock();
           this.wakeCount.update((n) => n + 1);
           this.commandText = (match[1] ?? '').trim();
           this.transcript.set(this.commandText);
