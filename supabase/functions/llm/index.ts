@@ -100,8 +100,14 @@ Deno.serve(async (req: Request) => {
     } else {
       const data = await resp.json();
       rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-      if (body.schema) {
-        try { parsed = JSON.parse(rawText); }
+      // Surface a truncation/empty case explicitly — these are the usual causes
+      // of a "model returned nothing" hard error on the client.
+      const finishReason = data?.candidates?.[0]?.finishReason;
+      if (!rawText) {
+        error = finishReason === 'MAX_TOKENS' ? 'response_truncated_max_tokens' : 'empty_model_response';
+      } else if (body.schema) {
+        const cleaned = stripCodeFences(rawText);
+        try { parsed = JSON.parse(cleaned); }
         catch { error = 'invalid_json_from_model'; }
       } else {
         parsed = rawText;
@@ -145,6 +151,16 @@ Deno.serve(async (req: Request) => {
     latencyMs,
   });
 });
+
+// Gemini occasionally wraps JSON in ```json … ``` fences despite
+// responseMimeType=application/json. Strip them before parsing.
+function stripCodeFences(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith('```')) {
+    return trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  }
+  return trimmed;
+}
 
 function json(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {

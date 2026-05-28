@@ -21,17 +21,22 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// `label` is the single required primary-text field. The portal normalizes
+// it back into typed fields (see normalizeWireItem in brain-dump.service.ts) —
+// we store the normalized shape here so meeting-review can hand proposals
+// straight to BrainDumpService.execute().
 const ITEM_SCHEMA = {
   type: 'object',
   properties: {
     type: { type: 'string', enum: ['list_item', 'event', 'routine', 'household_fact', 'context_note'] },
-    list_name: { type: 'string' },
-    text: { type: 'string' },
-    title: { type: 'string' },
-    name: { type: 'string' },
-    key: { type: 'string' },
-    value: { type: 'string' },
-    content: { type: 'string' },
+    label: {
+      type: 'string',
+      description:
+        'The primary text. ALWAYS fill this. list_item: item text. event: title. routine: routine name. ' +
+        'household_fact: the fact key/name. context_note: the note content.',
+    },
+    value: { type: 'string', description: 'household_fact only: the fact value.' },
+    list_name: { type: 'string', description: 'list_item only.' },
     notes: { type: 'string' },
     deadline: { type: 'string' },
     starts_at: { type: 'string' },
@@ -50,8 +55,34 @@ const ITEM_SCHEMA = {
     suppress_topics: { type: 'array', items: { type: 'string' } },
     reasoning: { type: 'string', description: 'Short quote from the transcript that prompted this item.' },
   },
-  required: ['type'],
+  required: ['type', 'label'],
 };
+
+// Mirror of normalizeWireItem from the portal's brain-dump.service. Keeps the
+// stored proposals in the typed shape the review UI + executor expect.
+function normalizeWireItem(raw: any): any | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const label = (raw.label ?? '').toString().trim();
+  if (!label && raw.type !== 'household_fact') return null;
+  const reasoning = raw.reasoning;
+  switch (raw.type) {
+    case 'list_item':
+      return { type: 'list_item', list_name: raw.list_name || 'To Do', text: label, notes: raw.notes, deadline: raw.deadline, reasoning };
+    case 'event':
+      if (!raw.starts_at) return null;
+      return { type: 'event', title: label, starts_at: raw.starts_at, ends_at: raw.ends_at, all_day: raw.all_day, location: raw.location, notes: raw.notes, reasoning };
+    case 'routine':
+      return { type: 'routine', name: label, category: raw.category, cadence_type: raw.cadence_type === 'calendar' ? 'calendar' : 'interval', interval_days: raw.interval_days, cadence_rrule: raw.cadence_rrule, notes: raw.notes, reasoning };
+    case 'household_fact':
+      if (!raw.value) return null;
+      return { type: 'household_fact', key: label, value: raw.value, category: raw.category, reasoning };
+    case 'context_note':
+      if (!raw.expires_at) return null;
+      return { type: 'context_note', content: label, note_type: raw.note_type ?? 'situational', expires_at: raw.expires_at, suppress_topics: raw.suppress_topics, reasoning };
+    default:
+      return null;
+  }
+}
 
 const RESPONSE_SCHEMA = {
   type: 'object',
@@ -75,6 +106,7 @@ const SYSTEM_PROMPT = `You are processing the transcript of a family planning me
   - context_note: time-bounded situational context (expires_at within 30 days).
 
 Critical rules:
+- EVERY proposal MUST have a non-empty "label" (the primary text). For household_fact also set "value".
 - NEVER extract emotional processing, jokes, or filler as action items.
 - INCLUDE non-actionable content in the summary, briefly and respectfully.
 - ALWAYS extract "open questions" — things discussed but not decided. This is the highest-value extraction; missing one wastes the meeting.
@@ -152,9 +184,13 @@ Deno.serve(async (req: Request) => {
     try { parsed = JSON.parse(rawText); }
     catch { throw new Error('invalid_json_from_model'); }
 
+    const normalizedProposals = (parsed.proposals ?? [])
+      .map(normalizeWireItem)
+      .filter((p: any) => p !== null);
+
     await admin.from('meeting_notes').update({
       status: 'ready_for_review',
-      proposals: parsed.proposals,
+      proposals: normalizedProposals,
       open_questions: parsed.open_questions,
       ai_summary: parsed.summary,
       error_message: null,

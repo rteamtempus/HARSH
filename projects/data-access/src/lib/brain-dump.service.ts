@@ -107,6 +107,11 @@ export interface ExecutionSummary {
 
 // ===== JSON schema given to Gemini =====
 
+// NOTE: `label` is a single REQUIRED field that carries the primary text for
+// every item type. Gemini reliably populates required fields; it was dropping
+// the old per-type optional fields (text / title / name / content), producing
+// "undefined" items. `value` is only used by household_fact (label = the key).
+// normalizeWireItem() maps this flat shape back into the typed BrainDumpItem.
 const ITEM_SCHEMA = {
   type: 'object',
   properties: {
@@ -114,33 +119,72 @@ const ITEM_SCHEMA = {
       type: 'string',
       enum: ['list_item', 'event', 'routine', 'household_fact', 'context_note'],
     },
-    list_name: { type: 'string', description: 'Best-match list name, or new list to propose.' },
-    text: { type: 'string' },
-    title: { type: 'string' },
-    name: { type: 'string' },
-    key: { type: 'string' },
-    value: { type: 'string' },
-    content: { type: 'string' },
+    label: {
+      type: 'string',
+      description:
+        'The primary text. ALWAYS fill this. list_item: the item text. event: the title. ' +
+        'routine: the routine name. household_fact: the fact key/name. context_note: the note content.',
+    },
+    value: { type: 'string', description: 'household_fact only: the fact value.' },
+    list_name: { type: 'string', description: 'list_item only: best-match existing list, or a new list name.' },
     notes: { type: 'string' },
-    deadline: { type: 'string', description: 'ISO 8601 timestamp' },
-    starts_at: { type: 'string', description: 'ISO 8601 timestamp; resolve relative dates' },
-    ends_at: { type: 'string', description: 'ISO 8601 timestamp' },
+    deadline: { type: 'string', description: 'list_item only: ISO 8601 timestamp' },
+    starts_at: { type: 'string', description: 'event only: ISO 8601 timestamp; resolve relative dates' },
+    ends_at: { type: 'string', description: 'event only: ISO 8601 timestamp' },
     all_day: { type: 'boolean' },
     location: { type: 'string' },
     category: { type: 'string' },
-    cadence_type: { type: 'string', enum: ['interval', 'calendar'] },
-    interval_days: { type: 'integer' },
-    cadence_rrule: { type: 'string', description: 'RFC5545 rrule string' },
+    cadence_type: { type: 'string', enum: ['interval', 'calendar'], description: 'routine only' },
+    interval_days: { type: 'integer', description: 'routine, cadence_type=interval' },
+    cadence_rrule: { type: 'string', description: 'routine, cadence_type=calendar: RFC5545 rrule' },
     note_type: {
       type: 'string',
       enum: ['emotional', 'situational', 'privacy_restriction', 'celebration'],
+      description: 'context_note only',
     },
-    expires_at: { type: 'string', description: 'ISO 8601 timestamp, max 30d from now' },
+    expires_at: { type: 'string', description: 'context_note only: ISO 8601, max 30d from now' },
     suppress_topics: { type: 'array', items: { type: 'string' } },
-    reasoning: { type: 'string', description: 'Quote or paraphrase from the dump that prompted this item' },
+    reasoning: { type: 'string', description: 'Short quote from the dump that prompted this item' },
   },
-  required: ['type'],
+  required: ['type', 'label'],
+  propertyOrdering: [
+    'type', 'label', 'value', 'list_name', 'starts_at', 'ends_at', 'all_day',
+    'location', 'category', 'cadence_type', 'interval_days', 'cadence_rrule',
+    'note_type', 'expires_at', 'suppress_topics', 'deadline', 'notes', 'reasoning',
+  ],
 };
+
+/**
+ * Map the flat wire item (with a single `label`) into the typed BrainDumpItem
+ * the executor + describe() expect. Returns null for an item missing its
+ * required primary text so the caller can drop it rather than create
+ * "undefined" rows.
+ */
+export function normalizeWireItem(raw: any): BrainDumpItem | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const label = (raw.label ?? '').toString().trim();
+  if (!label && raw.type !== 'household_fact') return null;
+  const reasoning = raw.reasoning;
+  switch (raw.type) {
+    case 'list_item':
+      return { type: 'list_item', list_name: raw.list_name || 'To Do', text: label, notes: raw.notes, deadline: raw.deadline, reasoning };
+    case 'event':
+      if (!raw.starts_at) return null;
+      return { type: 'event', title: label, starts_at: raw.starts_at, ends_at: raw.ends_at, all_day: raw.all_day, location: raw.location, notes: raw.notes, reasoning };
+    case 'routine': {
+      const cadence_type = raw.cadence_type === 'calendar' ? 'calendar' : 'interval';
+      return { type: 'routine', name: label, category: raw.category, cadence_type, interval_days: raw.interval_days, cadence_rrule: raw.cadence_rrule, notes: raw.notes, reasoning };
+    }
+    case 'household_fact':
+      if (!raw.value) return null;
+      return { type: 'household_fact', key: label, value: raw.value, category: raw.category, reasoning };
+    case 'context_note':
+      if (!raw.expires_at) return null;
+      return { type: 'context_note', content: label, note_type: raw.note_type ?? 'situational', expires_at: raw.expires_at, suppress_topics: raw.suppress_topics, reasoning };
+    default:
+      return null;
+  }
+}
 
 const RESPONSE_SCHEMA = {
   type: 'object',
@@ -182,17 +226,15 @@ export class BrainDumpService {
       '- "query": user is asking a question. Answer it conversationally using the snapshot provided.',
       '- "follow_up": the dump is ambiguous and you need ONE clarifying question to proceed. Set reply to your question and leave items empty.',
       '',
-      'When extracting:',
-      '- list_item: route to an existing list by name when possible. Match case-insensitively.',
-      '  Only invent a new list name when nothing fits.',
-      '- event: a specific scheduled time/place. starts_at must be a real ISO timestamp.',
-      '  Resolve relative dates ("next Tuesday at 10am") against today + timezone.',
-      '- routine: a recurring obligation without a specific time ("trash on Fridays", "mow every 7 days").',
-      '  Prefer cadence_type=interval with interval_days for "every N days".',
-      '  Use cadence_type=calendar with a cadence_rrule for weekday/monthly patterns.',
-      '- household_fact: a durable fact ("our pediatrician is Dr. X", "trash bin is the green one").',
-      '- context_note: time-bounded situational/emotional context that should influence briefing tone.',
-      '  expires_at MUST be within 30 days of now.',
+      'EVERY item MUST have a non-empty "label" — it is the primary text of the item. Never leave it blank.',
+      '',
+      'When extracting (set "label" to the bracketed thing):',
+      '- list_item: label = [the item, e.g. "milk"]. Set list_name to an existing list (match case-insensitively) or a new one.',
+      '- event: label = [the title]. starts_at must be a real ISO timestamp; resolve relative dates against today + timezone.',
+      '- routine: label = [the routine name, e.g. "Mow lawn"]. A recurring obligation without a specific time.',
+      '  Prefer cadence_type=interval + interval_days for "every N days". Use cadence_type=calendar + cadence_rrule for weekday/monthly patterns.',
+      '- household_fact: label = [the fact key/name, e.g. "pediatrician"], value = [the detail, e.g. "Dr. X, (555) 123-4567"].',
+      '- context_note: label = [the note content]. Time-bounded situational/emotional context; expires_at MUST be within 30 days.',
       '',
       'Never extract emotional-processing chatter, jokes, or filler as actionable items.',
       'For each extracted item, set "reasoning" to a short quote from the user that prompted the item.',
@@ -245,7 +287,7 @@ export class BrainDumpService {
 
     const prompt = userParts.join('\n');
 
-    const result = await this.llm.generateStructured<BrainDumpResult>(prompt, {
+    const result = await this.llm.generateStructured<{ mode: BrainDumpMode; reply: string; items?: any[] }>(prompt, {
       tier: 'fast',
       system,
       schema: RESPONSE_SCHEMA,
@@ -254,10 +296,15 @@ export class BrainDumpService {
     });
 
     const parsed = result.data;
+    // Normalize the flat wire items into typed BrainDumpItems; drop any that
+    // are missing their required primary text.
+    const items = (parsed.items ?? [])
+      .map(normalizeWireItem)
+      .filter((i): i is BrainDumpItem => i !== null);
     return {
       mode: parsed.mode,
       reply: parsed.reply,
-      items: parsed.items ?? [],
+      items,
     };
   }
 
