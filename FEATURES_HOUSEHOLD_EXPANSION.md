@@ -326,6 +326,11 @@ Same as before plus:
 - **D4 (quantity):** Boolean `in_stock` is the default. `quantity_count` is
   opt-in per item — toggleable from the item edit screen for things like
   toilet paper, soda cans, Zyn tins, wine bottles.
+- **D8 (budget reset day):** Weekly clock resets **Monday morning**.
+  Spending + waste report fires **Sunday ~19:00** local — lands right
+  before the family's weekly planning meeting so the report becomes input
+  to that conversation. Pg_cron schedule already in DEV_SETUP follows this
+  same cadence convention.
 - **D7 (per-person spending attribution):** Data layer captures `member_id`
   on every expense row from day one. v1 weekly report is **category-only**
   — no per-person breakdowns surfaced. Rationale: nothing in this household
