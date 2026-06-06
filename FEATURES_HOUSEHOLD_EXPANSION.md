@@ -326,6 +326,16 @@ Same as before plus:
 - **D4 (quantity):** Boolean `in_stock` is the default. `quantity_count` is
   opt-in per item — toggleable from the item edit screen for things like
   toilet paper, soda cans, Zyn tins, wine bottles.
+- **D6 (waste reasons enum):** Simplified to six values:
+  - `spoiled` — covers expired + forgot-in-fridge
+  - `disliked` — bought it, tasted it, didn't like it
+  - `leftover_not_eaten` — made too much, didn't finish
+  - `accident` — broken, spilled, dropped, contaminated
+  - `not_worth_it` — would rather toss than clean/store/deal with it.
+    Display label: "Not worth dealing with". DB key chosen over "lazy" so
+    the tag doesn't carry self-blame in the report — important so she
+    actually uses it honestly. Owner can rename the display label later.
+  - `other`
 - **D5 (waste capture path):** NEVER prompt at grocery checkoff. Two capture
   paths instead:
   - **Passive:** regular brain dump recognizes incidental waste mentions
@@ -346,9 +356,7 @@ Same as before plus:
 
 Marked **Q:** for easy scanning. Pruned to the ones that block v1 build.
 
-Q1–Q5 resolved in §9 above.
-
-6. **Q6: Waste reasons list** — does this cover her patterns: expired / disliked / spoiled / forgot / leftover_not_eaten / broken / lost / overcooked / other? Anything specific to your household?
+Q1–Q6 resolved in §9 above.
 
 7. **Q7: Per-person attribution for expenses** — every expense has a `member_id`. When voice or receipt OCR doesn't know, it picks the signed-in user. Do you want to see per-person breakdowns in the weekly report (e.g. "Holly bought $X of wine, Rory bought $Y of Zyns")? Or only category-level, never attributed? *(Affects: how confronting the report feels. I'd default to category-level only; per-person opt-in.)*
 
