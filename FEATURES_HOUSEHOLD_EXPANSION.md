@@ -326,6 +326,12 @@ Same as before plus:
 - **D4 (quantity):** Boolean `in_stock` is the default. `quantity_count` is
   opt-in per item — toggleable from the item edit screen for things like
   toilet paper, soda cans, Zyn tins, wine bottles.
+- **D10 (receipt review UX):** Batched review. After OCR, the entire
+  extracted table renders at once — vendor + total + every line item with
+  category + price. User scans for anomalies, taps a row to edit, hits
+  Save All when ready. Faster than per-item cards (~30 sec for a 30-item
+  receipt vs. several minutes), keeps category integrity (so trend lines
+  stay clean) without making post-shopping a chore.
 - **D9 (meal capture friction):** Multi-path. Whichever surface she's on
   when the thought hits, it works:
   - Cook-time voice/text: "I'm making chicken curry" → meal_event with
