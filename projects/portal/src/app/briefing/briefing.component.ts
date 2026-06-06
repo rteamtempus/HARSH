@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { HeaderComponent } from '../header/header.component';
 import {
   Briefing,
   BriefingService,
@@ -15,7 +16,7 @@ import {
 @Component({
   selector: 'harsh-briefing',
   standalone: true,
-  imports: [RouterLink, DatePipe],
+  imports: [DatePipe, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './briefing.component.html',
   styleUrl: './briefing.component.scss',

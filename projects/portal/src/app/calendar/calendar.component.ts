@@ -10,6 +10,7 @@ import {
   RoutineService,
   occurrencesForRoutines,
 } from 'data-access';
+import { HeaderComponent } from '../header/header.component';
 
 interface RoutineChip { name: string; category: string | null }
 interface DayGroup {
@@ -22,7 +23,7 @@ interface DayGroup {
 @Component({
   selector: 'harsh-calendar',
   standalone: true,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './calendar.component.html',
   styleUrl: './calendar.component.scss',

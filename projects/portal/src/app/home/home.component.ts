@@ -9,7 +9,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { HeaderComponent } from '../header/header.component';
 import {
   AuthService,
   BrainDumpContext,
@@ -38,7 +39,7 @@ type Stage = 'idle' | 'parsing' | 'review' | 'committing';
 @Component({
   selector: 'harsh-home',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',

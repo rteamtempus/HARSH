@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import {
   AuthService,
   FamilyService,
   ListItemRow,
   ListService,
 } from 'data-access';
+import { HeaderComponent } from '../header/header.component';
 
 // Lists CRUD — extracted from the previous home page so the new home can be the
 // brain-dump primary surface. See FEATURES.md §2.1 ("Hamburger menu contains:
@@ -15,7 +16,7 @@ import {
 @Component({
   selector: 'harsh-lists',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './lists.component.html',
   styleUrl: './lists.component.scss',

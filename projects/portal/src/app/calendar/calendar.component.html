@@ -1,11 +1,9 @@
 <main class="wrap">
-  <header>
-    <div>
-      <a routerLink="/" class="back">← Home</a>
-      <h1>Calendar</h1>
-    </div>
+  <harsh-header />
+  <div class="page-head">
+    <h1 class="page-title">Calendar</h1>
     <a routerLink="/settings" class="ghost">Manage calendars</a>
-  </header>
+  </div>
 
   @if (grouped().length === 0) {
     <p class="empty">

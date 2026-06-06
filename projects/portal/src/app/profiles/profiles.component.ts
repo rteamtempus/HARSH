@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { HeaderComponent } from '../header/header.component';
 import {
   FamilyService,
   ProfileRow,
@@ -27,7 +28,7 @@ const EMPTY_DRAFT: ProfileDraft = { id: null, name: '', kind: 'child', color: DE
 @Component({
   selector: 'harsh-profiles',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './profiles.component.html',
   styleUrl: './profiles.component.scss',

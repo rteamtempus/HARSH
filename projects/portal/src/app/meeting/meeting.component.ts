@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { HeaderComponent } from '../header/header.component';
 import {
   BrainDumpItem,
   FamilyService,
@@ -28,7 +29,7 @@ const STATUS_LABELS: Record<MeetingStatus, string> = {
 @Component({
   selector: 'harsh-meeting',
   standalone: true,
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './meeting.component.html',
   styleUrl: './meeting.component.scss',

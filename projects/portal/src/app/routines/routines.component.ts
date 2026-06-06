@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import {
   FamilyService,
   RoutineInsert,
   RoutineRow,
   RoutineService,
 } from 'data-access';
+import { HeaderComponent } from '../header/header.component';
 
 // Routines CRUD + actions — see FEATURES.md §4.3.
 // Complete/Skip/Snooze/Pause/Resume hit Postgres RPCs that update next_due AND
@@ -34,7 +35,7 @@ const EMPTY_DRAFT: RoutineDraft = {
 @Component({
   selector: 'harsh-routines',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, DatePipe, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './routines.component.html',
   styleUrl: './routines.component.scss',

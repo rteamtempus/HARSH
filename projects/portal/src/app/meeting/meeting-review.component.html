@@ -1,8 +1,9 @@
 <main class="wrap">
-  <header>
-    <a routerLink="/meeting" class="back">← Meetings</a>
-    <h1>Review meeting</h1>
-  </header>
+  <harsh-header />
+  <div class="page-head">
+    <h1 class="page-title">Review meeting</h1>
+    <a routerLink="/meeting" class="ghost small">← All meetings</a>
+  </div>
 
   @if (meeting(); as m) {
     <p class="when">{{ m.recorded_at | date:'EEEE, MMM d · h:mma' }} · {{ statusLabel(m.status) }}</p>

@@ -1,7 +1,7 @@
 <main class="wrap">
-  <header>
-    <a routerLink="/" class="back" aria-label="Back to home">←</a>
-    <h1>Briefing</h1>
+  <harsh-header />
+  <div class="page-head">
+    <h1 class="page-title">Briefing</h1>
     <div class="actions">
       <div class="seg">
         <button [class.active]="type() === 'daily'" (click)="setType('daily')">Today</button>
@@ -18,7 +18,7 @@
         @else { ↻ Refresh }
       </button>
     </div>
-  </header>
+  </div>
 
   @if (current(); as b) {
     <article class="briefing">

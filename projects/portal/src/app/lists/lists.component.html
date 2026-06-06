@@ -1,8 +1,6 @@
 <main class="wrap">
-  <header>
-    <a routerLink="/" class="back" aria-label="Back to home">←</a>
-    <h1>Lists</h1>
-  </header>
+  <harsh-header />
+  <h1 class="page-title">Lists</h1>
 
   @if (lists.lists().length === 0) {
     <p class="muted empty">No lists yet. Add an item from the home page and the AI will create one.</p>

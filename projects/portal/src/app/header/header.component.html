@@ -1,0 +1,30 @@
+<header class="harsh-header">
+  <a class="brand" routerLink="/" aria-label="Home">
+    <h1>{{ family.family()?.name ?? 'HARSH' }}</h1>
+    <p class="who">{{ auth.user()?.email }}</p>
+  </a>
+  <button class="hamburger" (click)="toggleMenu()" aria-label="Menu">☰</button>
+
+  @if (menuOpen()) {
+    <div class="menu-backdrop" (click)="menuOpen.set(false)"></div>
+    <nav class="menu" aria-label="Main menu">
+      <a routerLink="/" (click)="menuOpen.set(false)">Home</a>
+      <a routerLink="/briefing" (click)="menuOpen.set(false)">Briefing</a>
+      <a routerLink="/meeting" (click)="menuOpen.set(false)">Weekly meeting</a>
+      <a routerLink="/lists" (click)="menuOpen.set(false)">Lists</a>
+      <a routerLink="/routines" (click)="menuOpen.set(false)">Routines</a>
+      <a routerLink="/facts" (click)="menuOpen.set(false)">Household facts</a>
+      <a routerLink="/recipes" (click)="menuOpen.set(false)">Recipes</a>
+      <a routerLink="/profiles" (click)="menuOpen.set(false)">People &amp; pets</a>
+      <a routerLink="/context" (click)="menuOpen.set(false)">Context notes</a>
+      <a routerLink="/calendar" (click)="menuOpen.set(false)">Calendar</a>
+      <a routerLink="/settings" (click)="menuOpen.set(false)">Settings</a>
+      <a routerLink="/help" (click)="menuOpen.set(false)">How to use</a>
+      <a routerLink="/release-notes" (click)="menuOpen.set(false)">What's new</a>
+      <button class="theme-toggle" (click)="theme.toggleMode()">
+        {{ theme.state().mode === 'dark' ? '☀ Light mode' : '☾ Dark mode' }}
+      </button>
+      <button class="sign-out" (click)="signOut()">Sign out</button>
+    </nav>
+  }
+</header>

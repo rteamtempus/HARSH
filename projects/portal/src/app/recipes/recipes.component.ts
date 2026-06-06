@@ -1,11 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import {
   FamilyService,
   RecipeRow,
   RecipeService,
 } from 'data-access';
+import { HeaderComponent } from '../header/header.component';
 
 // Recipes v1 — see FEATURES_HOUSEHOLD_EXPANSION.md §3.
 // Photo + title capture, browse grid, view full size. Gemini-Vision text
@@ -16,7 +17,7 @@ interface Draft { title: string; notes: string; tags: string }
 @Component({
   selector: 'harsh-recipes',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './recipes.component.html',
   styleUrl: './recipes.component.scss',
@@ -39,22 +40,30 @@ export class RecipesComponent implements OnInit, OnDestroy {
 
   constructor() {
     // Resolve signed thumbnail URLs whenever the recipe list changes.
-    effect(async () => {
+    // Reads thumbUrls() via untracked() so writing it doesn't re-trigger this
+    // effect — otherwise we'd loop forever.
+    effect(() => {
       const list = this.recipes.recipes();
-      const next = new Map(this.thumbUrls());
-      // Drop URLs for deleted recipes.
-      for (const id of next.keys()) {
-        if (!list.find((r) => r.id === id)) next.delete(id);
-      }
-      // Resolve for new ones.
-      for (const r of list) {
-        if (!next.has(r.id) && r.photo_path) {
-          const url = await this.recipes.photoUrl(r);
-          if (url) next.set(r.id, url);
-        }
-      }
-      this.thumbUrls.set(next);
+      void this.resolveThumbnails(list);
     });
+  }
+
+  private async resolveThumbnails(list: RecipeRow[]): Promise<void> {
+    const current = untracked(() => this.thumbUrls());
+    const next = new Map(current);
+    let changed = false;
+    // Drop URLs for deleted recipes.
+    for (const id of next.keys()) {
+      if (!list.find((r) => r.id === id)) { next.delete(id); changed = true; }
+    }
+    // Resolve for new ones.
+    for (const r of list) {
+      if (!next.has(r.id) && r.photo_path) {
+        const url = await this.recipes.photoUrl(r);
+        if (url) { next.set(r.id, url); changed = true; }
+      }
+    }
+    if (changed) this.thumbUrls.set(next);
   }
 
   async ngOnInit() {

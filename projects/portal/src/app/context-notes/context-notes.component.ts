@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { DatePipe, TitleCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { HeaderComponent } from '../header/header.component';
 import {
   ContextNoteType,
   ContextNotesService,
@@ -49,7 +50,7 @@ const EMPTY_DRAFT = (): NoteDraft => ({
 @Component({
   selector: 'harsh-context-notes',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe, TitleCasePipe],
+  imports: [FormsModule, DatePipe, TitleCasePipe, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './context-notes.component.html',
   styleUrl: './context-notes.component.scss',

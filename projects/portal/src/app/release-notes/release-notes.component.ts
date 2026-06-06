@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Release, ReleaseService } from 'data-access';
+import { HeaderComponent } from '../header/header.component';
 
 // Persistent release-notes page — see FEATURES.md §9.3.
 // The first-open-of-day popup is a separate component; this is the history view.
@@ -8,7 +9,7 @@ import { Release, ReleaseService } from 'data-access';
 @Component({
   selector: 'app-release-notes',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './release-notes.component.html',
   styleUrl: './release-notes.component.scss',

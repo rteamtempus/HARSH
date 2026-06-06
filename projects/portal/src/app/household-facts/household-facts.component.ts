@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { HeaderComponent } from '../header/header.component';
 import {
   FamilyService,
   HouseholdFactRow,
@@ -27,7 +28,7 @@ interface FactGroup { category: string; facts: HouseholdFactRow[] }
 @Component({
   selector: 'harsh-household-facts',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, DatePipe, HeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './household-facts.component.html',
   styleUrl: './household-facts.component.scss',

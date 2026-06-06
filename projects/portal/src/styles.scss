@@ -1,1 +1,19 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles. Per-component styles still own most layout; this file is for
+   patterns shared across every page (e.g. the post-header page title row that
+   came in when harsh-header was extracted to a shared component). */
+
+.page-title {
+  margin: 0 0 var(--s-5, 1.25rem);
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  line-height: 1.1;
+}
+.page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3, 0.75rem);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5, 1.25rem);
+}
+.page-head .page-title { margin: 0; }
