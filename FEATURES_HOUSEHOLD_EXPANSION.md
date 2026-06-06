@@ -326,6 +326,12 @@ Same as before plus:
 - **D4 (quantity):** Boolean `in_stock` is the default. `quantity_count` is
   opt-in per item — toggleable from the item edit screen for things like
   toilet paper, soda cans, Zyn tins, wine bottles.
+- **D7 (per-person spending attribution):** Data layer captures `member_id`
+  on every expense row from day one. v1 weekly report is **category-only**
+  — no per-person breakdowns surfaced. Rationale: nothing in this household
+  is cleanly his vs. hers (she uses Zyns sometimes, he has the occasional
+  beer, electrolytes are mostly his but not exclusive). Per-person reports
+  can be added later as a report-side change, no schema migration needed.
 - **D6 (waste reasons enum):** Simplified to six values:
   - `spoiled` — covers expired + forgot-in-fridge
   - `disliked` — bought it, tasted it, didn't like it
