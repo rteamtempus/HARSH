@@ -2,7 +2,12 @@
 
 Living technical doc maintained alongside the code. Source of truth for *what is built today*. See [FEATURES.md](FEATURES.md) for the spec and [PROGRESS.md](PROGRESS.md) for the implementation checklist.
 
-> **Discipline:** Update this file in the same commit as the change it documents. Never "I'll update the docs next."
+> **Discipline (non-negotiable — owner has had to ask twice):** Every commit that ships user-visible behavior MUST update **all three** of:
+> 1. **CLAUDE.md** — feature implementation status + recent changes table.
+> 2. **`projects/portal/src/app/help/help.component.html`** — user-facing "How to use" copy. New page = new article; behavior change = paragraph edit.
+> 3. **`supabase/migrations/<timestamp>_release_<version>.sql`** — a new `releases` row OR an addition to a pending unreleased one. Pick a sensible version bump (PATCH for fixes / tiny tweaks, MINOR for new feature surfaces, MAJOR for breaking changes). The migration uses `on conflict (version) do nothing` so it's idempotent.
+>
+> If you're editing a feature surface (.component.ts/.html) and you don't open the help page + release-notes migration in the same change, you are forgetting the discipline. Stop and fix.
 
 ---
 

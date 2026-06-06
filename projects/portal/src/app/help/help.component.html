@@ -3,78 +3,207 @@
   <header class="page-head">
     <h1 class="page-title">How to use this</h1>
     <p class="lede">
-      A short tour of what lives where. If something feels missing, it probably
-      isn't built yet — check the
-      <a routerLink="/release-notes">release notes</a> for what's new.
+      A tour of everything that lives here. If something feels missing, check
+      <a routerLink="/release-notes">What's new</a> — it's probably been built since.
     </p>
   </header>
 
-  <article>
+  <nav class="toc" aria-label="Sections">
+    <a href="#capture">Capture</a>
+    <a href="#lists">Lists & calendar</a>
+    <a href="#routines">Routines</a>
+    <a href="#briefings">Briefings</a>
+    <a href="#meetings">Weekly meeting</a>
+    <a href="#recipes">Recipes</a>
+    <a href="#inventory">Inventory & waste</a>
+    <a href="#household">Household memory</a>
+    <a href="#settings">Settings</a>
+  </nav>
+
+  <article id="capture">
     <h2>Brain dump (home page)</h2>
     <p>
-      Type or talk into the box on the home screen. Don't worry about
-      structure — say everything that's in your head. The assistant pulls
-      out the to-dos, events, and reminders, and shows you a card per item
-      to confirm before anything gets saved.
+      The home page is one big text box plus a mic button. Type or say
+      everything that's in your head; the assistant pulls out to-dos,
+      events, routines, things to remember, even waste events ("we tossed the
+      moldy bread"). It shows you a card per item to confirm before
+      anything actually saves — tap <strong>Confirm all</strong> when the
+      parse looks right or skip individual items.
+    </p>
+    <p>
+      It also answers questions: "is cheese on the grocery list?", "when's
+      the dentist?". And it can ask follow-ups when something's ambiguous.
     </p>
   </article>
 
-  <article>
+  <article id="lists">
     <h2>Lists</h2>
     <p>
       Make as many lists as you want — Grocery, Hardware Store, Books to
-      Read, anything. Default lists come pre-made; rename or remove any of
-      them. Brain dump routes new items into the right list automatically.
+      Read. Default lists come pre-made. Brain dump routes new items to the
+      right list automatically. Each item can carry optional fields:
+      <strong>category</strong>, <strong>notes</strong>, deadline, lead
+      time, priority. Deadline-aware items get smarter surfacing as their
+      due date approaches.
     </p>
-  </article>
 
-  <article>
     <h2>Calendar</h2>
     <p>
-      The calendar shows shared events and connected external calendars
-      (Google, ICS feeds). Add events via the calendar page or by saying
-      "lawn guy is coming next Tuesday at 10."
+      Shared events + connected external calendars. Both ICS feeds (any
+      public iCal URL) and <strong>Google Calendar via OAuth</strong> are
+      supported. Google sync is <em>two-way</em>: events you add in HARSH
+      push to your primary Google calendar automatically. Manual sync via
+      voice ("sync my calendars") or the Settings page; hourly auto-sync
+      via pg_cron.
+    </p>
+    <p>
+      Routines surface on the calendar too — fixed-schedule routines (every
+      Friday, etc.) show as dashed gold chips on their due days alongside
+      events.
     </p>
   </article>
 
-  <article>
+  <article id="routines">
     <h2>Routines</h2>
     <p>
-      Routines are the recurring stuff that doesn't belong on a list (trash,
-      lawn, HVAC filter). They surface in the daily briefing when they're
-      coming up — they don't pile up as overdue items.
+      Recurring household obligations — trash, lawn, HVAC filter — that
+      don't belong on a list and aren't events. Each routine has a cadence
+      (interval like "every 7 days" or calendar like "every Friday") and
+      surfaces in the briefing + calendar when it's due.
     </p>
-    <p class="status">Status: planned — Phase 1.</p>
-  </article>
-
-  <article>
-    <h2>Briefings (on the TV)</h2>
     <p>
-      The display in the living room shows a calm daily briefing — what's
-      today, what needs your attention, what's coming. It refreshes a few
-      times a day (morning, midday, evening, before bed) and when something
-      relevant changes.
+      Actions: <strong>Done</strong> (advances the cycle + logs history),
+      <strong>Snooze 1 day / 1 week</strong>, <strong>Skip this one</strong>
+      (still advances), <strong>Pause</strong> (suspend until a date),
+      <strong>Resume</strong>. Brain dump can create routines too: "trash
+      goes out every Friday."
     </p>
-    <p class="status">Status: planned — Phase 2.</p>
   </article>
 
-  <article>
+  <article id="briefings">
+    <h2>Briefings (on the display, and in the portal)</h2>
+    <p>
+      Calm partner voice updating you on what's today, what needs
+      attention, what's coming. Hero line at the top, then sections for
+      today's events, things needing attention, an ambient "right now"
+      callout, and a heads-up section.
+    </p>
+    <p>
+      Daily, weekly, and monthly. Auto-regenerates on the schedule (6am /
+      12pm / 4:30pm / 7:30pm) plus when things change. Manual refresh from
+      the Briefing page. If TTS is configured, the briefing gets a Play
+      button — synthesized voice plays the spoken_text version.
+    </p>
+    <p>
+      Briefings respect quiet hours (default 9 pm – 7 am, configurable in
+      Settings): only assertive items break through during the quiet
+      window.
+    </p>
+  </article>
+
+  <article id="meetings">
     <h2>Weekly planning meeting</h2>
     <p>
-      Sit down with your spouse, hit record on your phone, talk through
-      the week. The app transcribes, pulls out proposed to-dos, events,
-      and routine changes, and shows you everything in one screen to
-      confirm before anything saves.
+      Sit down on Sunday evening, tap record, talk through the week. The
+      app uploads the audio, transcribes via Gemini with speaker labels,
+      then extracts a structured set of proposed to-dos, events, routines,
+      household facts, context notes — and any open questions. Review
+      everything on one screen, confirm or skip per item or per type, hit
+      Save. The transcript stays; the audio is deleted after extraction.
     </p>
-    <p class="status">Status: planned — Phase 4.</p>
+  </article>
+
+  <article id="recipes">
+    <h2>Recipes</h2>
+    <p>
+      Snap a photo (handwritten, printed, magazine clipping — Gemini
+      Vision reads them all). Tick <strong>Analyze with AI on save</strong>
+      and the title auto-fills from the photo, ingredients come out
+      structured, instructions land as a step block, and a rough cost
+      estimate per ingredient + total gets computed.
+    </p>
+    <p>
+      Every field is editable. Tap <strong>Edit</strong> in the recipe
+      lightbox to change the title, total cost, instructions, notes, or
+      any ingredient (add/remove/change name/qty/unit/notes/cost). The
+      photo stays as the source of truth; the extracted text is the
+      queryable layer.
+    </p>
+  </article>
+
+  <article id="inventory">
+    <h2>Inventory & waste</h2>
+    <p>
+      <strong>Inventory</strong> tracks what's in the house, organized by
+      category. Each category can hold multiple variants — "Soy sauce" with
+      low-sodium, tamari, dark, etc. Items default to a boolean in/out
+      flag; toilet paper and other count-based things can opt into quantity
+      counts. Mark one variant as the category default so "we're out of soy
+      sauce" without a specifier resolves correctly.
+    </p>
+    <p>
+      <strong>Waste</strong> is its own first-class thing. Capture it three
+      ways:
+    </p>
+    <ul>
+      <li>
+        Brain dump (passive) — say "we tossed the moldy bread" anywhere and
+        it logs a waste event, not a list item.
+      </li>
+      <li>
+        Fridge cleanout dump on the Waste page — paste a stream of items
+        ("the mustard was half-used, threw the lettuce") and it extracts
+        each one with cost estimates and waste percentages.
+      </li>
+      <li>
+        Quick one-item form on the Waste page — pick item, reason,
+        percentage, optional cost.
+      </li>
+    </ul>
+    <p>
+      Reasons: spoiled, disliked, leftover not eaten, accident, not worth
+      dealing with, other. The 7-day waste total shows at the top of the
+      Waste page.
+    </p>
+  </article>
+
+  <article id="household">
+    <h2>Household memory</h2>
+    <p>
+      <strong>Household facts</strong> are durable things you want the
+      assistant to remember — "Daughter's pediatrician is Dr. X, last visit
+      was…", "the trash bin is the green one." Categorized, searchable,
+      used as context for briefings and queries.
+    </p>
+    <p>
+      <strong>Context notes</strong> are short-lived — max 30 days,
+      auto-deleted after expiry. "Big presentation Friday — supportive
+      tone." "Hard week, keep it gentle." They shape <em>how</em> the
+      briefing reads, never auto-create tasks.
+    </p>
+    <p>
+      <strong>People & pets</strong> are non-login household members. Use
+      them to attach routines or events to the kid, the dog, etc.
+    </p>
+  </article>
+
+  <article id="settings">
+    <h2>Settings</h2>
+    <p>
+      Family members, time zone, calendars (ICS + Google), assistant voice
+      with audition (Chirp 3 HD voices), quiet hours, change password,
+      Google Calendar connect/disconnect — all in Settings.
+    </p>
   </article>
 
   <article>
-    <h2>Settings</h2>
+    <h2>Voice everywhere</h2>
     <p>
-      Family members, calendars, timezone, voice for the briefings, and
-      themes all live in the hamburger menu. Voice is a family-wide
-      choice — the assistant uses the same voice on every device.
+      The mic button next to any text input transcribes you into that
+      input. On the home page it streams into the brain dump. On the
+      Waste page it streams into the fridge-cleanout dump. The display
+      app has wake-word support ("Hey HARSH") and can switch calendar
+      views or sync calendars by voice.
     </p>
   </article>
 

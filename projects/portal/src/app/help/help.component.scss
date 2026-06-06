@@ -12,3 +12,12 @@ article h2 { margin: 0 0 .5rem; font-size: 1.15rem; }
 }
 footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border, #e3e6ea); }
 a { color: var(--accent, #4f7a9a); }
+
+.toc { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.5rem; padding: .75rem 1rem; background: var(--bg-surface); border-radius: var(--r-md); border: 1px solid var(--line-subtle); }
+.toc a { font-size: .85rem; color: var(--text-secondary); text-decoration: none; }
+.toc a::before { content: '·'; margin-right: .25rem; color: var(--text-tertiary); }
+.toc a:hover { color: var(--accent); }
+
+article ul { margin: .5rem 0 0 1.25rem; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+article p strong { color: var(--text-primary); }
+article p em { color: var(--text-secondary); }
