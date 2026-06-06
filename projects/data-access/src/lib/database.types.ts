@@ -1016,54 +1016,139 @@ export type Database = {
           },
         ]
       }
+      recipe_ingredients: {
+        Row: {
+          created_at: string
+          estimated_cost_cents: number | null
+          family_id: string
+          free_text_amount: string | null
+          id: string
+          matched_inventory_item_id: string | null
+          name: string
+          notes: string | null
+          quantity: number | null
+          recipe_id: string
+          sort_order: number
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          estimated_cost_cents?: number | null
+          family_id: string
+          free_text_amount?: string | null
+          id?: string
+          matched_inventory_item_id?: string | null
+          name: string
+          notes?: string | null
+          quantity?: number | null
+          recipe_id: string
+          sort_order?: number
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          estimated_cost_cents?: number | null
+          family_id?: string
+          free_text_amount?: string | null
+          id?: string
+          matched_inventory_item_id?: string | null
+          name?: string
+          notes?: string | null
+          quantity?: number | null
+          recipe_id?: string
+          sort_order?: number
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_matched_inventory_item_id_fkey"
+            columns: ["matched_inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipes: {
         Row: {
+          cook_time_minutes: number | null
           created_at: string
           created_by_member_id: string | null
           estimated_cost_cents: number | null
+          extracted_at: string | null
+          extraction_model: string | null
           family_id: string
           id: string
+          instructions: string | null
           last_made_at: string | null
           last_used_at: string | null
           notes: string | null
           photo_path: string | null
+          prep_time_minutes: number | null
           servings: number | null
           source: string
           source_url: string | null
           tags: string[]
           title: string
+          total_time_minutes: number | null
         }
         Insert: {
+          cook_time_minutes?: number | null
           created_at?: string
           created_by_member_id?: string | null
           estimated_cost_cents?: number | null
+          extracted_at?: string | null
+          extraction_model?: string | null
           family_id: string
           id?: string
+          instructions?: string | null
           last_made_at?: string | null
           last_used_at?: string | null
           notes?: string | null
           photo_path?: string | null
+          prep_time_minutes?: number | null
           servings?: number | null
           source?: string
           source_url?: string | null
           tags?: string[]
           title: string
+          total_time_minutes?: number | null
         }
         Update: {
+          cook_time_minutes?: number | null
           created_at?: string
           created_by_member_id?: string | null
           estimated_cost_cents?: number | null
+          extracted_at?: string | null
+          extraction_model?: string | null
           family_id?: string
           id?: string
+          instructions?: string | null
           last_made_at?: string | null
           last_used_at?: string | null
           notes?: string | null
           photo_path?: string | null
+          prep_time_minutes?: number | null
           servings?: number | null
           source?: string
           source_url?: string | null
           tags?: string[]
           title?: string
+          total_time_minutes?: number | null
         }
         Relationships: [
           {

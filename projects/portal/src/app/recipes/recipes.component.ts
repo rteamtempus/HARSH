@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import {
   FamilyService,
+  RecipeIngredientRow,
   RecipeRow,
   RecipeService,
 } from 'data-access';
@@ -17,7 +19,7 @@ interface Draft { title: string; notes: string; tags: string }
 @Component({
   selector: 'harsh-recipes',
   standalone: true,
-  imports: [FormsModule, HeaderComponent],
+  imports: [FormsModule, HeaderComponent, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './recipes.component.html',
   styleUrl: './recipes.component.scss',
@@ -34,6 +36,9 @@ export class RecipesComponent implements OnInit, OnDestroy {
   readonly viewing = signal<RecipeRow | null>(null);
   readonly fullUrl = signal<string | null>(null);
   readonly thumbUrls = signal<Map<string, string>>(new Map());
+  readonly ingredients = signal<RecipeIngredientRow[]>([]);
+  readonly extracting = signal(false);
+  readonly extractError = signal<string | null>(null);
 
   draft: Draft = { title: '', notes: '', tags: '' };
   private file: File | null = null;
@@ -155,10 +160,70 @@ export class RecipesComponent implements OnInit, OnDestroy {
   async open(r: RecipeRow) {
     this.viewing.set(r);
     this.fullUrl.set(null);
+    this.ingredients.set([]);
+    this.extractError.set(null);
     if (r.photo_path) {
       const url = await this.recipes.photoUrl(r);
       this.fullUrl.set(url);
     }
+    try {
+      const ings = await this.recipes.loadIngredients(r.id);
+      this.ingredients.set(ings);
+    } catch (e: any) {
+      this.extractError.set(e?.message ?? 'Could not load ingredients');
+    }
+  }
+
+  async extractRecipe(r: RecipeRow) {
+    this.extracting.set(true);
+    this.extractError.set(null);
+    try {
+      await this.recipes.extractFromPhoto(r.id);
+      // Reload the row + ingredients so the panel rerenders with the data.
+      const fresh = this.recipes.recipes().find((x) => x.id === r.id);
+      if (fresh) {
+        this.viewing.set(fresh);
+        const ings = await this.recipes.loadIngredients(r.id);
+        this.ingredients.set(ings);
+      }
+    } catch (e: any) {
+      const msg = e?.message ?? 'Extraction failed';
+      this.extractError.set(
+        msg.includes('GEMINI_API_KEY') || msg.includes('missing_gemini_api_key')
+          ? 'Recipe extraction needs the GEMINI_API_KEY secret on the extract-recipe edge function.'
+          : msg,
+      );
+    } finally {
+      this.extracting.set(false);
+    }
+  }
+
+  async editCost(r: RecipeRow) {
+    const current = r.estimated_cost_cents != null
+      ? (r.estimated_cost_cents / 100).toFixed(2)
+      : '';
+    const input = prompt('Total estimated cost ($):', current);
+    if (input == null) return;
+    const dollars = parseFloat(input);
+    if (Number.isNaN(dollars)) return;
+    try {
+      await this.recipes.update(r.id, { estimated_cost_cents: Math.round(dollars * 100) });
+    } catch (e: any) {
+      this.extractError.set(e?.message ?? 'Save failed');
+    }
+  }
+
+  formatAmount(ing: RecipeIngredientRow): string {
+    if (ing.free_text_amount) return ing.free_text_amount;
+    const parts: string[] = [];
+    if (ing.quantity != null) parts.push(formatQuantity(ing.quantity));
+    if (ing.unit) parts.push(ing.unit);
+    return parts.join(' ');
+  }
+
+  formatDollars(cents: number | null | undefined): string {
+    if (cents == null) return '';
+    return `$${(cents / 100).toFixed(2)}`;
   }
 
   async remove(r: RecipeRow) {
@@ -176,4 +241,19 @@ export class RecipesComponent implements OnInit, OnDestroy {
     if (p) URL.revokeObjectURL(p);
     this.previewUrl.set(null);
   }
+}
+
+/** "1.5" → "1½"; "0.25" → "¼". Falls back to a decimal with two places. */
+function formatQuantity(q: number): string {
+  if (Number.isInteger(q)) return String(q);
+  const fractions: Array<[number, string]> = [
+    [0.125, '⅛'], [0.25, '¼'], [0.333, '⅓'], [0.5, '½'],
+    [0.667, '⅔'], [0.75, '¾'],
+  ];
+  const whole = Math.floor(q);
+  const frac = q - whole;
+  for (const [v, s] of fractions) {
+    if (Math.abs(frac - v) < 0.02) return whole > 0 ? `${whole}${s}` : s;
+  }
+  return q.toFixed(2).replace(/\.?0+$/, '');
 }

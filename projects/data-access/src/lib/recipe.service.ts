@@ -5,6 +5,8 @@ import { Database } from './database.types';
 
 export type RecipeRow = Database['public']['Tables']['recipes']['Row'];
 export type RecipeInsert = Database['public']['Tables']['recipes']['Insert'];
+export type RecipeIngredientRow = Database['public']['Tables']['recipe_ingredients']['Row'];
+export type RecipeIngredientInsert = Database['public']['Tables']['recipe_ingredients']['Insert'];
 
 /**
  * Family-scoped recipes — see FEATURES_HOUSEHOLD_EXPANSION.md §3.
@@ -108,6 +110,52 @@ export class RecipeService {
       await this.supabase.storage.from('recipe-photos').remove([row.photo_path]);
     }
     const { error } = await this.supabase.from('recipes').delete().eq('id', id);
+    if (error) throw error;
+  }
+
+  /** Load ingredients for one recipe, ordered by sort_order. */
+  async loadIngredients(recipeId: string): Promise<RecipeIngredientRow[]> {
+    const { data, error } = await this.supabase
+      .from('recipe_ingredients').select('*')
+      .eq('recipe_id', recipeId)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  /**
+   * Kick the Gemini-Vision extractor. Returns when extraction completes;
+   * realtime will refresh `recipes`/`recipe_ingredients` signals.
+   */
+  async extractFromPhoto(recipeId: string): Promise<{
+    ingredients_count: number;
+    instructions_preview: string;
+    total_cost_cents: number | null;
+  }> {
+    const { data, error } = await this.supabase.functions.invoke('extract-recipe', {
+      body: { recipe_id: recipeId },
+    });
+    if (error) throw error;
+    if (!data || (data as any).error) throw new Error((data as any)?.error ?? 'extraction failed');
+    return data as any;
+  }
+
+  // ===== Ingredient CRUD (manual edits after extraction) =====
+
+  async addIngredient(input: RecipeIngredientInsert): Promise<RecipeIngredientRow> {
+    const { data, error } = await this.supabase
+      .from('recipe_ingredients').insert(input).select('*').single();
+    if (error) throw error;
+    return data;
+  }
+
+  async updateIngredient(id: string, patch: Partial<RecipeIngredientRow>): Promise<void> {
+    const { error } = await this.supabase.from('recipe_ingredients').update(patch).eq('id', id);
+    if (error) throw error;
+  }
+
+  async removeIngredient(id: string): Promise<void> {
+    const { error } = await this.supabase.from('recipe_ingredients').delete().eq('id', id);
     if (error) throw error;
   }
 

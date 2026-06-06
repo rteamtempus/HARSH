@@ -45,4 +45,24 @@ h1 { margin:0; font-family:var(--font-display); font-size:var(--fs-h1); }
 .notes { white-space:pre-wrap; color:var(--text-secondary); margin:0; }
 .lightbox-inner footer { display:flex; justify-content:flex-end; gap:var(--s-2); margin-top:var(--s-3); }
 
+.extract-cta { display:flex; flex-direction:column; gap:var(--s-2); padding:var(--s-3); background:var(--bg-surface); border:1px dashed var(--accent); border-radius:var(--r-md); }
+.cta-hint { margin:0; font-size:var(--fs-small); color:var(--text-secondary); }
+.extract-meta { font-size:var(--fs-small); color:var(--text-tertiary); display:flex; align-items:center; gap:var(--s-2); }
+.link { background:none; border:0; padding:0; color:var(--accent); cursor:pointer; font-size:inherit; text-decoration:underline; font-family:inherit; }
+
+.cost-row { display:flex; align-items:center; gap:var(--s-2); padding:var(--s-2) var(--s-3); background:var(--bg-surface); border-radius:var(--r-md); }
+.cost-row strong { font-variant-numeric:tabular-nums; }
+
+.recipe-section { display:flex; flex-direction:column; gap:var(--s-2); }
+.recipe-section h3 { margin:0; font-family:var(--font-sans); font-size:var(--fs-small); color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; }
+
+.ingredients { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:var(--s-1); }
+.ingredients li { display:flex; align-items:baseline; gap:var(--s-2); padding:var(--s-1) 0; border-bottom:1px solid var(--line-subtle); flex-wrap:wrap; }
+.amount { font-variant-numeric:tabular-nums; color:var(--text-secondary); min-width:5rem; font-weight:500; }
+.name { flex:1; }
+.ing-notes { color:var(--text-tertiary); font-size:var(--fs-small); font-style:italic; }
+.ing-cost { color:var(--text-tertiary); font-size:var(--fs-small); font-variant-numeric:tabular-nums; }
+
+.instructions { white-space:pre-wrap; font-family:inherit; margin:0; line-height:1.5; color:var(--text-primary); background:var(--bg-surface); padding:var(--s-3); border-radius:var(--r-md); }
+
 .error { color:var(--danger); margin:var(--s-3) 0 0; font-size:var(--fs-small); }

@@ -84,10 +84,70 @@
           <h2>{{ r.title }}</h2>
           <button class="close" (click)="viewing.set(null)" aria-label="Close">×</button>
         </header>
+
         @if (fullUrl(); as url) {
           <img class="full" [src]="url" [alt]="r.title" />
         }
-        @if (r.notes) { <p class="notes">{{ r.notes }}</p> }
+
+        @if (r.photo_path && !r.extracted_at) {
+          <div class="extract-cta">
+            <p class="cta-hint">Read the recipe with AI — extracts ingredients, instructions, and a rough cost estimate.</p>
+            <button class="primary" (click)="extractRecipe(r)" [disabled]="extracting()">
+              @if (extracting()) { Reading the photo… } @else { ✨ Extract from photo }
+            </button>
+          </div>
+        } @else if (r.extracted_at) {
+          <div class="extract-meta">
+            Extracted {{ r.extracted_at | date:'shortDate' }} ·
+            <button class="link" (click)="extractRecipe(r)" [disabled]="extracting()">Re-extract</button>
+          </div>
+        }
+
+        @if (extractError(); as e) { <p class="error">{{ e }}</p> }
+
+        <!-- Cost summary -->
+        @if (r.estimated_cost_cents != null) {
+          <div class="cost-row">
+            <span>Estimated total cost</span>
+            <strong>{{ formatDollars(r.estimated_cost_cents) }}</strong>
+            <button class="link" (click)="editCost(r)">Edit</button>
+          </div>
+        }
+
+        <!-- Ingredients -->
+        @if (ingredients().length > 0) {
+          <section class="recipe-section">
+            <h3>Ingredients</h3>
+            <ul class="ingredients">
+              @for (ing of ingredients(); track ing.id) {
+                <li>
+                  <span class="amount">{{ formatAmount(ing) }}</span>
+                  <span class="name">{{ ing.name }}</span>
+                  @if (ing.notes) { <span class="ing-notes">({{ ing.notes }})</span> }
+                  @if (ing.estimated_cost_cents) {
+                    <span class="ing-cost">{{ formatDollars(ing.estimated_cost_cents) }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        <!-- Instructions -->
+        @if (r.instructions) {
+          <section class="recipe-section">
+            <h3>Instructions</h3>
+            <pre class="instructions">{{ r.instructions }}</pre>
+          </section>
+        }
+
+        @if (r.notes) {
+          <section class="recipe-section">
+            <h3>Notes</h3>
+            <p class="notes">{{ r.notes }}</p>
+          </section>
+        }
+
         <footer>
           <button class="danger" (click)="remove(r)">Delete</button>
         </footer>
