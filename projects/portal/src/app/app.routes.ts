@@ -46,6 +46,12 @@ export const routes: Routes = [
       import('./briefing/briefing.component').then((m) => m.BriefingComponent),
   },
   {
+    path: 'recipes',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./recipes/recipes.component').then((m) => m.RecipesComponent),
+  },
+  {
     path: 'meeting',
     canActivate: [authGuard],
     loadComponent: () =>

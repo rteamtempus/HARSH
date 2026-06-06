@@ -1,0 +1,99 @@
+<main class="wrap">
+  <header>
+    <a routerLink="/" class="back" aria-label="Back to home">←</a>
+    <h1>Recipes</h1>
+  </header>
+
+  <p class="lede">
+    Snap a photo of a recipe — handwritten or printed — and find it later.
+    Add a name and tap save.
+  </p>
+
+  <section class="add-section">
+    @if (!adding()) {
+      <button class="add-btn" (click)="startAdd()">+ Add recipe</button>
+    } @else {
+      <form class="editor" (submit)="$event.preventDefault(); save()">
+        <h3>New recipe</h3>
+
+        <label class="photo-field">
+          Photo
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            (change)="onFile($event)"
+          />
+        </label>
+        @if (previewUrl(); as url) {
+          <img class="preview" [src]="url" alt="Recipe preview" />
+        }
+
+        <label>
+          Title
+          <input type="text" [(ngModel)]="draft.title" name="title" placeholder="e.g. Grandma's coffee cake" required />
+        </label>
+
+        <label>
+          Tags (comma-separated, optional)
+          <input type="text" [(ngModel)]="draft.tags" name="tags" placeholder="breakfast, quick, kid-friendly" />
+        </label>
+
+        <label>
+          Notes (optional)
+          <textarea [(ngModel)]="draft.notes" name="notes" rows="2"></textarea>
+        </label>
+
+        <div class="actions">
+          <button type="button" class="ghost" (click)="cancel()">Cancel</button>
+          <button type="submit" class="primary" [disabled]="busy()">
+            @if (busy()) { Saving… } @else { Save }
+          </button>
+        </div>
+        @if (error(); as e) { <p class="error">{{ e }}</p> }
+      </form>
+    }
+  </section>
+
+  @if (recipes.recipes().length === 0) {
+    <p class="empty">No recipes yet. Snap a photo of one to get started.</p>
+  } @else {
+    <ul class="grid">
+      @for (r of recipes.recipes(); track r.id) {
+        <li class="card" (click)="open(r)">
+          @if (thumbUrls().get(r.id); as url) {
+            <img [src]="url" [alt]="r.title" />
+          } @else {
+            <div class="no-photo">📖</div>
+          }
+          <div class="card-body">
+            <strong>{{ r.title }}</strong>
+            @if (r.tags && r.tags.length) {
+              <div class="tags">
+                @for (t of r.tags; track t) { <span class="tag">{{ t }}</span> }
+              </div>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (viewing(); as r) {
+    <div class="lightbox" (click)="viewing.set(null)">
+      <div class="lightbox-inner" (click)="$event.stopPropagation()">
+        <header>
+          <h2>{{ r.title }}</h2>
+          <button class="close" (click)="viewing.set(null)" aria-label="Close">×</button>
+        </header>
+        @if (fullUrl(); as url) {
+          <img class="full" [src]="url" [alt]="r.title" />
+        }
+        @if (r.notes) { <p class="notes">{{ r.notes }}</p> }
+        <footer>
+          <button class="danger" (click)="remove(r)">Delete</button>
+        </footer>
+      </div>
+    </div>
+  }
+</main>

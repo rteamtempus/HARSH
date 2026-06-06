@@ -750,6 +750,63 @@ export type Database = {
           },
         ]
       }
+      recipes: {
+        Row: {
+          created_at: string
+          created_by_member_id: string | null
+          family_id: string
+          id: string
+          last_used_at: string | null
+          notes: string | null
+          photo_path: string | null
+          source: string
+          source_url: string | null
+          tags: string[]
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_member_id?: string | null
+          family_id: string
+          id?: string
+          last_used_at?: string | null
+          notes?: string | null
+          photo_path?: string | null
+          source?: string
+          source_url?: string | null
+          tags?: string[]
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by_member_id?: string | null
+          family_id?: string
+          id?: string
+          last_used_at?: string | null
+          notes?: string | null
+          photo_path?: string | null
+          source?: string
+          source_url?: string | null
+          tags?: string[]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_created_by_member_id_fkey"
+            columns: ["created_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipes_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       releases: {
         Row: {
           created_at: string
