@@ -1,0 +1,117 @@
+<main class="wrap">
+  <harsh-header />
+  <div class="page-head">
+    <h1 class="page-title">Inventory</h1>
+    <div class="head-actions">
+      <button class="ghost" (click)="startAddItem()">+ Item</button>
+      <button class="ghost" (click)="startAddCategory()">+ Category</button>
+    </div>
+  </div>
+
+  <p class="lede">
+    What's in the house. Categories like "Soy sauce" group variants together —
+    voice or brain dump can say "we're out of soy sauce" and it resolves to a
+    specific item or asks which one.
+  </p>
+
+  @if (catEditing()) {
+    <form class="editor" (submit)="$event.preventDefault(); saveCategory()">
+      <h3>New category</h3>
+      <label>
+        Name
+        <input type="text" [(ngModel)]="catDraft.name" name="cname" required />
+      </label>
+      <div class="actions">
+        <button type="button" class="ghost" (click)="catEditing.set(false)">Cancel</button>
+        <button type="submit" class="primary" [disabled]="busy()">Save</button>
+      </div>
+    </form>
+  }
+
+  @if (itemEditing()) {
+    <form class="editor" (submit)="$event.preventDefault(); saveItem()">
+      <h3>{{ itemDraft.id ? 'Edit item' : 'New item' }}</h3>
+      <label>
+        Name
+        <input type="text" [(ngModel)]="itemDraft.name" name="iname" placeholder="e.g. low sodium Kikkoman" required />
+      </label>
+      <label>
+        Category
+        <select [(ngModel)]="itemDraft.category_id" name="cat">
+          <option [ngValue]="null">— Misc —</option>
+          @for (c of inventory.categories(); track c.id) {
+            <option [ngValue]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Brand (optional)
+        <input type="text" [(ngModel)]="itemDraft.brand" name="brand" />
+      </label>
+      <label>
+        Size (optional)
+        <input type="text" [(ngModel)]="itemDraft.size_text" name="size" placeholder="16oz" />
+      </label>
+      <label>
+        Variant notes (optional)
+        <input type="text" [(ngModel)]="itemDraft.variant_notes" name="vnotes" placeholder="gluten-free, from Costco" />
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" [(ngModel)]="itemDraft.tracks_count" name="tracks" />
+        Track quantity (counts) — for things like toilet paper, soda cans
+      </label>
+      @if (itemDraft.tracks_count) {
+        <label>
+          Quantity
+          <input type="number" [(ngModel)]="itemDraft.quantity_count" name="qty" min="0" />
+        </label>
+      }
+      <label class="checkbox">
+        <input type="checkbox" [(ngModel)]="itemDraft.is_category_default" name="def" />
+        Default for this category (used when voice says "we're out of [category]" without specifying)
+      </label>
+      <div class="actions">
+        @if (itemDraft.id) {
+          <button type="button" class="danger" (click)="archiveItem()">Archive</button>
+        }
+        <button type="button" class="ghost" (click)="itemEditing.set(false)">Cancel</button>
+        <button type="submit" class="primary" [disabled]="busy()">Save</button>
+      </div>
+      @if (error(); as e) { <p class="error">{{ e }}</p> }
+    </form>
+  }
+
+  @if (inventory.activeItems().length === 0) {
+    <p class="empty">Nothing tracked yet. Add an item or two and we'll start seeing what's where.</p>
+  } @else {
+    @for (group of groupedByCategory(); track group.category?.id ?? 'uncategorized') {
+      <section class="cat">
+        <header class="cat-head">
+          <h2>{{ group.category?.name ?? 'Misc' }}</h2>
+          <span class="count">{{ group.items.length }}</span>
+        </header>
+        <ul class="items">
+          @for (item of group.items; track item.id) {
+            <li class="item" [class.out]="!item.in_stock">
+              <button class="toggle" (click)="toggleInStock(item)" [attr.aria-label]="item.in_stock ? 'Mark out' : 'Mark in'">
+                @if (item.in_stock) { ● } @else { ○ }
+              </button>
+              <div class="meta" (click)="startEditItem(item)">
+                <strong>{{ item.name }}</strong>
+                @if (variantLine(item); as v) { <span class="sub">{{ v }}</span> }
+                @if (item.is_category_default) { <span class="default-badge">default</span> }
+              </div>
+              @if (item.tracks_count) {
+                <div class="qty">
+                  <button (click)="adjustCount(item, -1)" [disabled]="(item.quantity_count ?? 0) <= 0">−</button>
+                  <span>{{ item.quantity_count ?? 0 }}</span>
+                  <button (click)="adjustCount(item, +1)">+</button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</main>

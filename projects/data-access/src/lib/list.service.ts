@@ -59,6 +59,7 @@ export class ListService {
       lead_time_minutes?: number | null;
       nag?: 'passive' | 'surface' | 'assertive';
       notes?: string | null;
+      category?: string | null;
     },
   ): Promise<void> {
     const trimmed = text.trim();
@@ -72,6 +73,7 @@ export class ListService {
       lead_time_minutes: extra?.lead_time_minutes ?? null,
       nag: extra?.nag ?? 'surface',
       notes: extra?.notes ?? null,
+      category: extra?.category ?? null,
     });
     if (error) throw error;
   }

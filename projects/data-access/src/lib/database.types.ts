@@ -448,12 +448,203 @@ export type Database = {
           },
         ]
       }
+      inventory_categories: {
+        Row: {
+          archived: boolean
+          color: string | null
+          created_at: string
+          default_grocery_list_id: string | null
+          description: string | null
+          family_id: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          archived?: boolean
+          color?: string | null
+          created_at?: string
+          default_grocery_list_id?: string | null
+          description?: string | null
+          family_id: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          archived?: boolean
+          color?: string | null
+          created_at?: string
+          default_grocery_list_id?: string | null
+          description?: string | null
+          family_id?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_categories_default_grocery_list_id_fkey"
+            columns: ["default_grocery_list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_categories_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_events: {
+        Row: {
+          family_id: string
+          id: string
+          item_id: string | null
+          kind: Database["public"]["Enums"]["inventory_event_kind"]
+          member_id: string | null
+          note: string | null
+          occurred_at: string
+          price_cents: number | null
+          quantity_delta: number | null
+          source: Database["public"]["Enums"]["inventory_event_source"]
+        }
+        Insert: {
+          family_id: string
+          id?: string
+          item_id?: string | null
+          kind: Database["public"]["Enums"]["inventory_event_kind"]
+          member_id?: string | null
+          note?: string | null
+          occurred_at?: string
+          price_cents?: number | null
+          quantity_delta?: number | null
+          source: Database["public"]["Enums"]["inventory_event_source"]
+        }
+        Update: {
+          family_id?: string
+          id?: string
+          item_id?: string | null
+          kind?: Database["public"]["Enums"]["inventory_event_kind"]
+          member_id?: string | null
+          note?: string | null
+          occurred_at?: string
+          price_cents?: number | null
+          quantity_delta?: number | null
+          source?: Database["public"]["Enums"]["inventory_event_source"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_events_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_events_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_events_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_items: {
+        Row: {
+          archived: boolean
+          brand: string | null
+          category_id: string | null
+          created_at: string
+          family_id: string
+          id: string
+          in_stock: boolean
+          is_category_default: boolean
+          last_purchased_at: string | null
+          last_purchased_price_cents: number | null
+          name: string
+          normalized_name: string | null
+          quantity_count: number | null
+          size_text: string | null
+          tracks_count: boolean
+          typical_price_cents: number | null
+          unit: string | null
+          variant_notes: string | null
+        }
+        Insert: {
+          archived?: boolean
+          brand?: string | null
+          category_id?: string | null
+          created_at?: string
+          family_id: string
+          id?: string
+          in_stock?: boolean
+          is_category_default?: boolean
+          last_purchased_at?: string | null
+          last_purchased_price_cents?: number | null
+          name: string
+          normalized_name?: string | null
+          quantity_count?: number | null
+          size_text?: string | null
+          tracks_count?: boolean
+          typical_price_cents?: number | null
+          unit?: string | null
+          variant_notes?: string | null
+        }
+        Update: {
+          archived?: boolean
+          brand?: string | null
+          category_id?: string | null
+          created_at?: string
+          family_id?: string
+          id?: string
+          in_stock?: boolean
+          is_category_default?: boolean
+          last_purchased_at?: string | null
+          last_purchased_price_cents?: number | null
+          name?: string
+          normalized_name?: string | null
+          quantity_count?: number | null
+          size_text?: string | null
+          tracks_count?: boolean
+          typical_price_cents?: number | null
+          unit?: string | null
+          variant_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       list_items: {
         Row: {
           added_at: string
           added_by_member_id: string | null
           assignee_member_id: string | null
           assignee_profile_id: string | null
+          category: string | null
           checked: boolean
           checked_at: string | null
           deadline: string | null
@@ -476,6 +667,7 @@ export type Database = {
           added_by_member_id?: string | null
           assignee_member_id?: string | null
           assignee_profile_id?: string | null
+          category?: string | null
           checked?: boolean
           checked_at?: string | null
           deadline?: string | null
@@ -498,6 +690,7 @@ export type Database = {
           added_by_member_id?: string | null
           assignee_member_id?: string | null
           assignee_profile_id?: string | null
+          category?: string | null
           checked?: boolean
           checked_at?: string | null
           deadline?: string | null
@@ -584,6 +777,79 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_events: {
+        Row: {
+          created_at: string
+          estimated_total_cost_cents: number | null
+          estimated_value_wasted_cents: number | null
+          family_id: string
+          id: string
+          member_id: string | null
+          notes: string | null
+          occurred_at: string
+          recipe_id: string | null
+          recipe_name_snapshot: string
+          servings_eaten: number | null
+          servings_made: number | null
+          servings_wasted: number | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_total_cost_cents?: number | null
+          estimated_value_wasted_cents?: number | null
+          family_id: string
+          id?: string
+          member_id?: string | null
+          notes?: string | null
+          occurred_at?: string
+          recipe_id?: string | null
+          recipe_name_snapshot: string
+          servings_eaten?: number | null
+          servings_made?: number | null
+          servings_wasted?: number | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          estimated_total_cost_cents?: number | null
+          estimated_value_wasted_cents?: number | null
+          family_id?: string
+          id?: string
+          member_id?: string | null
+          notes?: string | null
+          occurred_at?: string
+          recipe_id?: string | null
+          recipe_name_snapshot?: string
+          servings_eaten?: number | null
+          servings_made?: number | null
+          servings_wasted?: number | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_events_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_events_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_events_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
             referencedColumns: ["id"]
           },
         ]
@@ -754,11 +1020,14 @@ export type Database = {
         Row: {
           created_at: string
           created_by_member_id: string | null
+          estimated_cost_cents: number | null
           family_id: string
           id: string
+          last_made_at: string | null
           last_used_at: string | null
           notes: string | null
           photo_path: string | null
+          servings: number | null
           source: string
           source_url: string | null
           tags: string[]
@@ -767,11 +1036,14 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by_member_id?: string | null
+          estimated_cost_cents?: number | null
           family_id: string
           id?: string
+          last_made_at?: string | null
           last_used_at?: string | null
           notes?: string | null
           photo_path?: string | null
+          servings?: number | null
           source?: string
           source_url?: string | null
           tags?: string[]
@@ -780,11 +1052,14 @@ export type Database = {
         Update: {
           created_at?: string
           created_by_member_id?: string | null
+          estimated_cost_cents?: number | null
           family_id?: string
           id?: string
+          last_made_at?: string | null
           last_used_at?: string | null
           notes?: string | null
           photo_path?: string | null
+          servings?: number | null
           source?: string
           source_url?: string | null
           tags?: string[]
@@ -1000,6 +1275,83 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "releases"
             referencedColumns: ["version"]
+          },
+        ]
+      }
+      waste_events: {
+        Row: {
+          estimated_value_cents: number | null
+          family_id: string
+          free_text_name: string | null
+          id: string
+          item_id: string | null
+          meal_event_id: string | null
+          member_id: string | null
+          note: string | null
+          occurred_at: string
+          percentage_wasted: number
+          quantity_text: string | null
+          reason: Database["public"]["Enums"]["waste_reason"]
+          source: string
+        }
+        Insert: {
+          estimated_value_cents?: number | null
+          family_id: string
+          free_text_name?: string | null
+          id?: string
+          item_id?: string | null
+          meal_event_id?: string | null
+          member_id?: string | null
+          note?: string | null
+          occurred_at?: string
+          percentage_wasted?: number
+          quantity_text?: string | null
+          reason?: Database["public"]["Enums"]["waste_reason"]
+          source?: string
+        }
+        Update: {
+          estimated_value_cents?: number | null
+          family_id?: string
+          free_text_name?: string | null
+          id?: string
+          item_id?: string | null
+          meal_event_id?: string | null
+          member_id?: string | null
+          note?: string | null
+          occurred_at?: string
+          percentage_wasted?: number
+          quantity_text?: string | null
+          reason?: Database["public"]["Enums"]["waste_reason"]
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waste_events_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_events_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_events_meal_event_id_fkey"
+            columns: ["meal_event_id"]
+            isOneToOne: false
+            referencedRelation: "meal_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waste_events_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1243,6 +1595,10 @@ export type Database = {
         }
         Returns: string
       }
+      seed_inventory_categories: {
+        Args: { p_family_id: string }
+        Returns: undefined
+      }
       should_show_release_popup: { Args: never; Returns: boolean }
       unread_releases: {
         Args: never
@@ -1273,6 +1629,17 @@ export type Database = {
       energy_level: "low" | "medium" | "high"
       event_source: "manual" | "gcal" | "icloud" | "ics" | "caldav" | "voice"
       family_member_role: "owner" | "adult" | "kid"
+      inventory_event_kind:
+        | "added"
+        | "removed"
+        | "price_changed"
+        | "manual_edit"
+        | "wasted"
+      inventory_event_source:
+        | "voice"
+        | "grocery_check"
+        | "receipt_ocr"
+        | "manual"
       list_kind: "grocery" | "todo" | "custom"
       meeting_status:
         | "recording"
@@ -1287,6 +1654,13 @@ export type Database = {
       profile_kind: "child" | "pet" | "dependent" | "other"
       routine_cadence_type: "calendar" | "interval"
       routine_history_status: "completed" | "skipped" | "snoozed"
+      waste_reason:
+        | "spoiled"
+        | "disliked"
+        | "leftover_not_eaten"
+        | "accident"
+        | "not_worth_it"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1429,6 +1803,19 @@ export const Constants = {
       energy_level: ["low", "medium", "high"],
       event_source: ["manual", "gcal", "icloud", "ics", "caldav", "voice"],
       family_member_role: ["owner", "adult", "kid"],
+      inventory_event_kind: [
+        "added",
+        "removed",
+        "price_changed",
+        "manual_edit",
+        "wasted",
+      ],
+      inventory_event_source: [
+        "voice",
+        "grocery_check",
+        "receipt_ocr",
+        "manual",
+      ],
       list_kind: ["grocery", "todo", "custom"],
       meeting_status: [
         "recording",
@@ -1444,6 +1831,14 @@ export const Constants = {
       profile_kind: ["child", "pet", "dependent", "other"],
       routine_cadence_type: ["calendar", "interval"],
       routine_history_status: ["completed", "skipped", "snoozed"],
+      waste_reason: [
+        "spoiled",
+        "disliked",
+        "leftover_not_eaten",
+        "accident",
+        "not_worth_it",
+        "other",
+      ],
     },
   },
 } as const

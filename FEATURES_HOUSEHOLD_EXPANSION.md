@@ -413,9 +413,12 @@ Future questions can be added here as the build proceeds.
 
 **H1 — Recipes v1** ✅ landed
 
-**H2 — Inventory + Waste foundation**
+**H2 — Inventory + Waste + Meal-cost foundation**  *(in progress)*
 - Categories table + items + extended events
 - waste_events table
+- **meal_events table + recipes cost/servings/last_made_at columns** (pulled
+  forward from H4 per owner request so meal cost lands at the same time as
+  waste cost — same migration cohort)
 - Voice intents: out_of / have / query / waste.log
 - Brain dump recognizes implicit waste lines
 - Portal `/inventory` page (categorized grid)

@@ -21,6 +21,8 @@ import { EventService } from './event.service';
 import { RoutineService } from './routine.service';
 import { HouseholdFactsService } from './household-facts.service';
 import { ContextNotesService } from './context-notes.service';
+import { InventoryService } from './inventory.service';
+import { WasteService } from './waste.service';
 
 // ===== Domain types =====
 
@@ -32,6 +34,7 @@ export type BrainDumpItem =
       list_name: string;          // best match against an existing list, OR a brand-new list name
       text: string;
       notes?: string;
+      category?: string;          // free-text; for grocery items, matches inventory category
       deadline?: string;          // ISO timestamp
       reasoning?: string;
     }
@@ -68,6 +71,15 @@ export type BrainDumpItem =
       note_type: 'emotional' | 'situational' | 'privacy_restriction' | 'celebration';
       expires_at: string;         // ISO timestamp, max 30d
       suppress_topics?: string[];
+      reasoning?: string;
+    }
+  | {
+      type: 'waste_event';
+      name: string;
+      reason: 'spoiled' | 'disliked' | 'leftover_not_eaten' | 'accident' | 'not_worth_it' | 'other';
+      percentage_wasted?: number;          // 0-100; defaults to 100
+      quantity_text?: string;              // "half a loaf", "two slices"
+      estimated_value_cents?: number;      // when set, used as the value
       reasoning?: string;
     };
 
@@ -117,7 +129,7 @@ const ITEM_SCHEMA = {
   properties: {
     type: {
       type: 'string',
-      enum: ['list_item', 'event', 'routine', 'household_fact', 'context_note'],
+      enum: ['list_item', 'event', 'routine', 'household_fact', 'context_note', 'waste_event'],
     },
     label: {
       type: 'string',
@@ -144,6 +156,23 @@ const ITEM_SCHEMA = {
     },
     expires_at: { type: 'string', description: 'context_note only: ISO 8601, max 30d from now' },
     suppress_topics: { type: 'array', items: { type: 'string' } },
+    reason: {
+      type: 'string',
+      enum: ['spoiled', 'disliked', 'leftover_not_eaten', 'accident', 'not_worth_it', 'other'],
+      description: 'waste_event only',
+    },
+    percentage_wasted: {
+      type: 'integer',
+      description: 'waste_event only: 0-100; 100 = whole item, 50 = half used',
+    },
+    quantity_text: {
+      type: 'string',
+      description: 'waste_event only: "half a loaf", "two slices", etc.',
+    },
+    estimated_value_cents: {
+      type: 'integer',
+      description: 'waste_event only: when known. Otherwise leave blank and the executor estimates.',
+    },
     reasoning: { type: 'string', description: 'Short quote from the dump that prompted this item' },
   },
   required: ['type', 'label'],
@@ -167,7 +196,7 @@ export function normalizeWireItem(raw: any): BrainDumpItem | null {
   const reasoning = raw.reasoning;
   switch (raw.type) {
     case 'list_item':
-      return { type: 'list_item', list_name: raw.list_name || 'To Do', text: label, notes: raw.notes, deadline: raw.deadline, reasoning };
+      return { type: 'list_item', list_name: raw.list_name || 'To Do', text: label, notes: raw.notes, category: raw.category, deadline: raw.deadline, reasoning };
     case 'event':
       if (!raw.starts_at) return null;
       return { type: 'event', title: label, starts_at: raw.starts_at, ends_at: raw.ends_at, all_day: raw.all_day, location: raw.location, notes: raw.notes, reasoning };
@@ -181,6 +210,16 @@ export function normalizeWireItem(raw: any): BrainDumpItem | null {
     case 'context_note':
       if (!raw.expires_at) return null;
       return { type: 'context_note', content: label, note_type: raw.note_type ?? 'situational', expires_at: raw.expires_at, suppress_topics: raw.suppress_topics, reasoning };
+    case 'waste_event':
+      return {
+        type: 'waste_event',
+        name: label,
+        reason: raw.reason ?? 'other',
+        percentage_wasted: raw.percentage_wasted,
+        quantity_text: raw.quantity_text,
+        estimated_value_cents: raw.estimated_value_cents,
+        reasoning,
+      };
     default:
       return null;
   }
@@ -210,6 +249,8 @@ export class BrainDumpService {
   private readonly routines = inject(RoutineService);
   private readonly facts = inject(HouseholdFactsService);
   private readonly contextNotes = inject(ContextNotesService);
+  private readonly inventory = inject(InventoryService);
+  private readonly waste = inject(WasteService);
 
   async parse(transcript: string, ctx: BrainDumpContext): Promise<BrainDumpResult> {
     const now = new Date();
@@ -230,11 +271,18 @@ export class BrainDumpService {
       '',
       'When extracting (set "label" to the bracketed thing):',
       '- list_item: label = [the item, e.g. "milk"]. Set list_name to an existing list (match case-insensitively) or a new one.',
+      '  Optional `category` field (text): use it especially on grocery items when an inventory category matches (e.g. "Pantry", "Fridge", "Alcohol").',
+      '  Optional `notes` field: any context the user added ("the brand she likes", "make sure unsweetened").',
       '- event: label = [the title]. starts_at must be a real ISO timestamp; resolve relative dates against today + timezone.',
       '- routine: label = [the routine name, e.g. "Mow lawn"]. A recurring obligation without a specific time.',
       '  Prefer cadence_type=interval + interval_days for "every N days". Use cadence_type=calendar + cadence_rrule for weekday/monthly patterns.',
       '- household_fact: label = [the fact key/name, e.g. "pediatrician"], value = [the detail, e.g. "Dr. X, (555) 123-4567"].',
       '- context_note: label = [the note content]. Time-bounded situational/emotional context; expires_at MUST be within 30 days.',
+      '- waste_event: ONLY when the user explicitly says something was thrown out, discarded, expired, spoiled, didn\'t get eaten, etc.',
+      '  label = [the thing wasted, e.g. "moldy bread", "the chicken curry leftovers"].',
+      '  reason: spoiled / disliked / leftover_not_eaten / accident / not_worth_it / other (pick the closest fit).',
+      '  percentage_wasted: 0-100. Default 100. Use lower when user says "half-used", "almost empty", etc.',
+      '  Do NOT confuse this with list_items — "we need bread" is a list_item, "we threw out the moldy bread" is a waste_event.',
       '',
       'Never extract emotional-processing chatter, jokes, or filler as actionable items.',
       'For each extracted item, set "reasoning" to a short quote from the user that prompted the item.',
@@ -351,7 +399,10 @@ export class BrainDumpService {
         if (!list) {
           list = await this.lists.createList(ctx.familyId, item.list_name);
         }
-        await this.lists.addItem(list.id, item.text, ctx.familyId, ctx.memberId ?? null);
+        await this.lists.addItem(list.id, item.text, ctx.familyId, ctx.memberId ?? null, {
+          notes: item.notes,
+          category: item.category,
+        });
         return;
       }
       case 'event': {
@@ -404,6 +455,34 @@ export class BrainDumpService {
         });
         return;
       }
+      case 'waste_event': {
+        // Best-effort inventory match for cost. If unmatched and no LLM-
+        // provided value, the row gets null estimated value — the report
+        // tolerates missing costs.
+        const resolution = this.inventory.resolveForVoice(item.name);
+        let itemId: string | null = null;
+        let estimatedValue: number | null = item.estimated_value_cents ?? null;
+        if (resolution.kind === 'item') {
+          itemId = resolution.item.id;
+          if (estimatedValue == null && resolution.item.typical_price_cents) {
+            const pct = item.percentage_wasted ?? 100;
+            estimatedValue = Math.round((pct / 100) * resolution.item.typical_price_cents);
+          }
+        }
+        await this.waste.log({
+          familyId: ctx.familyId,
+          itemId,
+          freeTextName: itemId ? null : item.name,
+          reason: item.reason,
+          percentage: item.percentage_wasted ?? 100,
+          estimatedValueCents: estimatedValue,
+          quantityText: item.quantity_text ?? null,
+          source: 'brain_dump',
+          memberId: ctx.memberId ?? null,
+          note: item.reasoning ?? null,
+        });
+        return;
+      }
     }
   }
 
@@ -428,6 +507,14 @@ export class BrainDumpService {
       case 'context_note': {
         const exp = formatWhen(item.expires_at);
         return `Context note (${item.note_type}): ${item.content} — until ${exp}`;
+      }
+      case 'waste_event': {
+        const pct = item.percentage_wasted ?? 100;
+        const value = item.estimated_value_cents != null
+          ? ` (~$${(item.estimated_value_cents / 100).toFixed(2)})`
+          : '';
+        const pctTag = pct < 100 ? ` (${pct}%)` : '';
+        return `Wasted: ${item.name}${pctTag} · ${item.reason.replace(/_/g, ' ')}${value}`;
       }
     }
   }

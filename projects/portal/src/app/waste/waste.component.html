@@ -1,0 +1,141 @@
+<main class="wrap">
+  <harsh-header />
+  <div class="page-head">
+    <h1 class="page-title">Waste</h1>
+    <div class="head-stat">
+      Last 7 days:
+      <strong>{{ formatDollars(waste.weeklyTotal()) }}</strong>
+    </div>
+  </div>
+
+  <p class="lede">
+    Track what got thrown away and why. Same dollar spent twice is different
+    if half of it ended up in the bin. Two ways to log: the quick form here,
+    or the "fridge cleanout" dump below — speak or type a stream of items
+    and the assistant logs each one.
+  </p>
+
+  <!-- Waste brain dump (fridge-cleanout flow) -->
+  <section class="dump-card">
+    <h3>Fridge cleanout / batch waste</h3>
+    <p class="dump-hint">
+      Free-form: list what got thrown out. "the mustard was half used,
+      threw out the moldy bread, the lettuce was gone, the leftover chicken
+      curry from Monday." The assistant matches to inventory for cost and
+      asks you to confirm each one before saving.
+    </p>
+    <textarea
+      class="dump-input"
+      [(ngModel)]="dumpText"
+      name="dump"
+      rows="4"
+      placeholder="What got thrown out…"
+      [disabled]="dumpBusy()"
+    ></textarea>
+    <div class="dump-actions">
+      <button class="primary" (click)="processDump()" [disabled]="!dumpText.trim() || dumpBusy()">
+        @if (dumpBusy()) { Parsing… } @else { Parse }
+      </button>
+    </div>
+    @if (dumpError(); as e) { <p class="error">{{ e }}</p> }
+
+    @if (dumpResult(); as result) {
+      @if (result.length === 0) {
+        <p class="dump-hint">No waste items found in that. Try being more explicit ("threw out the X").</p>
+      } @else {
+        <h4>Review</h4>
+        <ul class="cards">
+          @for (cand of result; track $index; let i = $index) {
+            <li class="card" [class.skipped]="skipped().has(i)">
+              <div class="card-body">
+                <p class="describe">{{ describe(cand) }}</p>
+                @if (cand.reasoning) { <p class="reason">"{{ cand.reasoning }}"</p> }
+              </div>
+              <div class="card-actions">
+                @if (skipped().has(i)) {
+                  <button class="ghost small" (click)="unskip(i)">Bring back</button>
+                } @else {
+                  <button class="ghost small" (click)="skip(i)">Skip</button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+        <button class="primary" (click)="commitDump()" [disabled]="activeDumpCount() === 0 || dumpBusy()">
+          Save {{ activeDumpCount() }}
+        </button>
+      }
+    }
+  </section>
+
+  <!-- Quick add form -->
+  <section class="add-section">
+    @if (!quickAdding()) {
+      <button class="add-btn" (click)="startQuickAdd()">+ Log a single waste item</button>
+    } @else {
+      <form class="editor" (submit)="$event.preventDefault(); saveQuick()">
+        <h3>Log waste</h3>
+        <label>
+          What was thrown out?
+          <input type="text" [(ngModel)]="quickDraft.name" name="qname" placeholder="e.g. half a loaf of sourdough" required />
+        </label>
+        <label>
+          Match to inventory item (optional)
+          <select [(ngModel)]="quickDraft.item_id" name="qitem">
+            <option [ngValue]="null">— free text only —</option>
+            @for (it of inventory.activeItems(); track it.id) {
+              <option [ngValue]="it.id">{{ it.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Reason
+          <select [(ngModel)]="quickDraft.reason" name="qreason">
+            <option value="spoiled">Spoiled (expired, went bad)</option>
+            <option value="disliked">Didn't like it</option>
+            <option value="leftover_not_eaten">Leftover not eaten</option>
+            <option value="accident">Accident (spilled, broke)</option>
+            <option value="not_worth_it">Not worth dealing with</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label>
+          Percentage wasted (default 100%)
+          <input type="number" [(ngModel)]="quickDraft.percentage" name="qpct" min="1" max="100" />
+        </label>
+        <label>
+          Estimated cost (optional, $)
+          <input type="number" [(ngModel)]="quickDraft.dollars" name="qdollars" min="0" step="0.01" />
+        </label>
+        <div class="actions">
+          <button type="button" class="ghost" (click)="quickAdding.set(false)">Cancel</button>
+          <button type="submit" class="primary" [disabled]="busy()">Save</button>
+        </div>
+      </form>
+    }
+  </section>
+
+  <h2 class="section-h">Recent waste</h2>
+  @if (waste.recent().length === 0) {
+    <p class="empty">No waste logged yet.</p>
+  } @else {
+    <ul class="log">
+      @for (w of waste.recent(); track w.id) {
+        <li class="row">
+          <div class="meta">
+            <strong>{{ displayName(w) }}</strong>
+            <span class="sub">
+              {{ reasonLabel(w.reason) }}
+              @if (w.percentage_wasted !== 100) { · {{ w.percentage_wasted }}% }
+              @if (w.estimated_value_cents) { · {{ formatDollars(w.estimated_value_cents) }} }
+              · {{ w.occurred_at | date:'shortDate' }}
+            </span>
+          </div>
+          <button class="danger small" (click)="remove(w.id)">Delete</button>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (loadError(); as e) { <p class="error">{{ e }}</p> }
+</main>
