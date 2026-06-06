@@ -326,6 +326,12 @@ Same as before plus:
 - **D4 (quantity):** Boolean `in_stock` is the default. `quantity_count` is
   opt-in per item — toggleable from the item edit screen for things like
   toilet paper, soda cans, Zyn tins, wine bottles.
+- **D11 (spending report tone):** Neutral by default — facts only, no
+  editorializing. Numbers themselves do the work. AI never says "you went
+  over"; it says "groceries: $330 / $250 target" and lets the gap speak.
+  Avoids triggering shame patterns around money; supports the
+  visibility-not-nagging principle the rest of HARSH uses. A "more direct
+  feedback" toggle can be added in Settings later if requested.
 - **D10 (receipt review UX):** Batched review. After OCR, the entire
   extracted table renders at once — vendor + total + every line item with
   category + price. User scans for anomalies, taps a row to edit, hits
@@ -382,11 +388,10 @@ Same as before plus:
   - Future-automation ideas to revisit, but not for v1: receipt-date-aware
     expiry guesses, photo of trash to bulk-log.
 
-## 10. Open Questions — Slim List
+## 10. Open Questions
 
-Marked **Q:** for easy scanning. Pruned to the ones that block v1 build.
-
-Q1–Q6 resolved in §9 above.
+All v1 build-blocking questions resolved — see §9 for the captured decisions.
+Future questions can be added here as the build proceeds.
 
 7. **Q7: Per-person attribution for expenses** — every expense has a `member_id`. When voice or receipt OCR doesn't know, it picks the signed-in user. Do you want to see per-person breakdowns in the weekly report (e.g. "Holly bought $X of wine, Rory bought $Y of Zyns")? Or only category-level, never attributed? *(Affects: how confronting the report feels. I'd default to category-level only; per-person opt-in.)*
 
