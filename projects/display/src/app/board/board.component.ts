@@ -8,13 +8,17 @@ import {
   EventRow,
   EventService,
   FamilyService,
+  InventoryService,
   ListItemRow,
   ListRow,
   ListService,
+  MealService,
+  RecipeService,
   RoutineOccurrence,
   RoutineService,
   ThemeService,
   VoiceService,
+  WasteService,
   occurrencesForRoutines,
 } from 'data-access';
 import { DayViewComponent } from './views/day-view.component';
@@ -52,6 +56,10 @@ export class BoardComponent implements OnInit, OnDestroy {
   protected readonly briefings = inject(BriefingService);
   protected readonly routines = inject(RoutineService);
   private readonly ai = inject(AiService);
+  private readonly inventory = inject(InventoryService);
+  private readonly waste = inject(WasteService);
+  private readonly meals = inject(MealService);
+  private readonly recipeService = inject(RecipeService);
   private readonly router = inject(Router);
 
   readonly now = signal('');
@@ -147,6 +155,11 @@ export class BoardComponent implements OnInit, OnDestroy {
         this.calendars.loadAccounts(fam.id),
         this.briefings.load(fam.id),
         this.routines.load(fam.id),
+        // Loaded so voice intents can resolve immediately.
+        this.inventory.load(fam.id).catch((e) => console.warn('inventory load failed', e)),
+        this.waste.load(fam.id).catch((e) => console.warn('waste load failed', e)),
+        this.meals.load(fam.id).catch((e) => console.warn('meals load failed', e)),
+        this.recipeService.load(fam.id).catch((e) => console.warn('recipes load failed', e)),
       ]);
       this.accountById.set(new Map(accounts.map((a) => [a.id, a])));
       const todo = lists.find((l) => l.kind === 'todo') ?? lists[0];
@@ -166,6 +179,10 @@ export class BoardComponent implements OnInit, OnDestroy {
     this.events.unsubscribe();
     this.briefings.unsubscribe();
     this.routines.unsubscribe();
+    this.inventory.unsubscribe();
+    this.waste.unsubscribe();
+    this.meals.unsubscribe();
+    this.recipeService.unsubscribe();
     document.removeEventListener('fullscreenchange', this.fsListener);
   }
 
@@ -200,6 +217,7 @@ export class BoardComponent implements OnInit, OnDestroy {
     this.showHeard(transcript);
     try {
       const res = await this.ai.runIntent({ transcript, family_id: fam.id, surface: 'display' });
+      let overrideReply: string | null = null;
       for (const intent of res.intents) {
         if (intent.action === 'view.show_list' && intent.resolved_list_id) {
           await this.setActiveList(intent.resolved_list_id);
@@ -210,13 +228,151 @@ export class BoardComponent implements OnInit, OnDestroy {
           // Fire and forget — the model already produced a spoken_reply for the
           // user, and realtime will refresh the event list when sync writes new rows.
           void this.calendars.syncAll(fam.id);
+        } else if (intent.action === 'inventory.out_of') {
+          overrideReply = await this.handleInventoryOutOf(fam.id, intent.phrase) ?? overrideReply;
+        } else if (intent.action === 'inventory.have') {
+          overrideReply = await this.handleInventoryHave(fam.id, intent.phrase) ?? overrideReply;
+        } else if (intent.action === 'inventory.query') {
+          overrideReply = this.handleInventoryQuery(intent.phrase) ?? overrideReply;
+        } else if (intent.action === 'waste.log') {
+          overrideReply = await this.handleWasteLog(
+            fam.id, intent.phrase,
+            (intent.reason as any) ?? 'other',
+            intent.percentage ?? 100,
+          ) ?? overrideReply;
+        } else if (intent.action === 'meal.cooked') {
+          overrideReply = await this.handleMealCooked(fam.id, intent.recipe_name, intent.servings ?? null) ?? overrideReply;
+        } else if (intent.action === 'meal.discarded') {
+          overrideReply = await this.handleMealDiscarded(fam.id, intent.recipe_name, intent.servings_eaten ?? null) ?? overrideReply;
         }
       }
-      this.showReply(res.spoken_reply);
-      this.voice.speak(res.spoken_reply);
+      const reply = overrideReply ?? res.spoken_reply;
+      this.showReply(reply);
+      this.voice.speak(reply);
     } catch (e: any) {
       this.showReply(`Sorry — ${e?.message ?? 'something went wrong'}`);
     }
+  }
+
+  // ===== Voice intent handlers =====
+
+  /**
+   * "We're out of soy sauce" — resolve via D2 ladder, mark item out of stock,
+   * and add a corresponding entry to the grocery list. Returns a spoken reply
+   * tailored to which branch of the ladder fired.
+   */
+  private async handleInventoryOutOf(familyId: string, phrase: string): Promise<string | null> {
+    const resolution = this.inventory.resolveForVoice(phrase);
+    const grocery = this.lists.lists().find((l) => l.kind === 'grocery');
+    const meId = this.family.me()?.id ?? null;
+
+    if (resolution.kind === 'item') {
+      await this.inventory.setInStock(resolution.item, false, { source: 'voice', memberId: meId });
+      if (grocery) {
+        await this.lists.addItem(grocery.id, resolution.item.name, familyId, meId);
+      }
+      return `Marked ${resolution.item.name} out and added it to the grocery list.`;
+    }
+    if (resolution.kind === 'category') {
+      if (grocery) {
+        await this.lists.addItem(grocery.id, resolution.name, familyId, meId);
+      }
+      return `Added ${resolution.name} to the grocery list.`;
+    }
+    // No match → add to grocery under Misc.
+    if (grocery) {
+      await this.lists.addItem(grocery.id, resolution.name, familyId, meId);
+    }
+    return `Added ${resolution.name} to the grocery list.`;
+  }
+
+  /** "We just bought bread" — mark the matched item back in stock. */
+  private async handleInventoryHave(_familyId: string, phrase: string): Promise<string | null> {
+    const resolution = this.inventory.resolveForVoice(phrase);
+    const meId = this.family.me()?.id ?? null;
+    if (resolution.kind === 'item') {
+      await this.inventory.setInStock(resolution.item, true, { source: 'voice', memberId: meId });
+      return `${capitalize(resolution.item.name)} is back in stock.`;
+    }
+    // Unmatched: nothing to update — just acknowledge.
+    return `Noted, but I don't have ${phrase} tracked yet — add it on the Inventory page.`;
+  }
+
+  /** "Do we have eggs?" — read-only resolution lookup. */
+  private handleInventoryQuery(phrase: string): string | null {
+    const resolution = this.inventory.resolveForVoice(phrase);
+    if (resolution.kind === 'item') {
+      const item = resolution.item;
+      if (item.in_stock) {
+        const qty = item.quantity_count != null ? ` (${item.quantity_count} on hand)` : '';
+        return `Yes — ${item.name} is in stock${qty}.`;
+      }
+      return `No — ${item.name} is marked out.`;
+    }
+    if (resolution.kind === 'category') {
+      return `Nothing tracked under ${resolution.category.name} yet.`;
+    }
+    return `I don't have ${phrase} on the inventory list.`;
+  }
+
+  /** "We threw out the moldy bread" — log a waste event. */
+  private async handleWasteLog(
+    familyId: string, phrase: string,
+    reason: 'spoiled' | 'disliked' | 'leftover_not_eaten' | 'accident' | 'not_worth_it' | 'other',
+    percentage: number,
+  ): Promise<string | null> {
+    const resolution = this.inventory.resolveForVoice(phrase);
+    const meId = this.family.me()?.id ?? null;
+    const itemId = resolution.kind === 'item' ? resolution.item.id : null;
+    const estValue = resolution.kind === 'item' && resolution.item.typical_price_cents != null
+      ? Math.round((percentage / 100) * (resolution.item.typical_price_cents as number))
+      : null;
+    await this.waste.log({
+      familyId, itemId,
+      freeTextName: itemId ? null : phrase,
+      reason, percentage,
+      estimatedValueCents: estValue,
+      source: 'voice', memberId: meId,
+    });
+    return `Logged ${phrase} as waste.`;
+  }
+
+  /** "I made lasagna" — log a meal_event tied to the recipe if found. */
+  private async handleMealCooked(familyId: string, recipeName: string, servings: number | null): Promise<string | null> {
+    const meId = this.family.me()?.id ?? null;
+    const recipe = this.findRecipeByName(recipeName);
+    await this.meals.logCooked({
+      familyId,
+      recipeId: recipe?.id ?? null,
+      recipeName: recipe?.title ?? recipeName,
+      servingsMade: servings ?? recipe?.servings ?? null,
+      estimatedTotalCostCents: recipe?.estimated_cost_cents ?? null,
+      memberId: meId,
+      source: 'voice',
+    });
+    return `Logged ${recipe?.title ?? recipeName}.`;
+  }
+
+  /** "We threw out the lasagna leftovers" — close the loop on a recent meal. */
+  private async handleMealDiscarded(familyId: string, recipeName: string, servingsEaten: number | null): Promise<string | null> {
+    const meId = this.family.me()?.id ?? null;
+    const recipe = this.findRecipeByName(recipeName);
+    await this.meals.recordDiscard({
+      familyId,
+      recipeName: recipe?.title ?? recipeName,
+      servingsEaten,
+      memberId: meId,
+      source: 'voice',
+    });
+    return `Logged ${recipe?.title ?? recipeName} leftovers as discarded.`;
+  }
+
+  private findRecipeByName(name: string) {
+    const n = name.trim().toLowerCase();
+    if (!n) return null;
+    return this.recipeService.recipes().find((r) => r.title.toLowerCase() === n)
+      ?? this.recipeService.recipes().find((r) => r.title.toLowerCase().includes(n))
+      ?? null;
   }
 
   memberColor(item: ListItemRow): string {
@@ -263,6 +419,11 @@ function formatTime(d: Date, tz?: string): string {
     hour: 'numeric', minute: '2-digit',
     ...(tz ? { timeZone: tz } : {}),
   });
+}
+
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function rangeFor(view: CalView, anchor: Date): { from: Date; to: Date } {

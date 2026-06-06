@@ -38,6 +38,8 @@ interface RequestBody {
 }
 
 interface IntentBase { confidence?: number }
+type WasteReason =
+  | 'spoiled' | 'disliked' | 'leftover_not_eaten' | 'accident' | 'not_worth_it' | 'other';
 type Intent =
   | (IntentBase & { action: 'list.add_item'; list: string; text: string })
   | (IntentBase & { action: 'list.check_item'; list: string; text: string })
@@ -45,6 +47,12 @@ type Intent =
   | (IntentBase & { action: 'view.show_list'; list: string; resolved_list_id?: string; resolved_list_name?: string })
   | (IntentBase & { action: 'calendar.show'; view: 'day' | 'week' | 'month'; anchor_date: string })
   | (IntentBase & { action: 'calendar.sync_all' })
+  | (IntentBase & { action: 'inventory.out_of'; phrase: string })
+  | (IntentBase & { action: 'inventory.have'; phrase: string })
+  | (IntentBase & { action: 'inventory.query'; phrase: string })
+  | (IntentBase & { action: 'waste.log'; phrase: string; reason?: WasteReason; percentage?: number })
+  | (IntentBase & { action: 'meal.cooked'; recipe_name: string; servings?: number })
+  | (IntentBase & { action: 'meal.discarded'; recipe_name: string; servings_eaten?: number })
   | (IntentBase & { action: 'unknown'; reason: string });
 
 interface ParsedResponse {
@@ -64,17 +72,24 @@ const RESPONSE_SCHEMA = {
             type: 'string',
             enum: [
               'list.add_item', 'list.check_item', 'list.remove_item',
-              'view.show_list', 'calendar.show', 'calendar.sync_all', 'unknown',
+              'view.show_list', 'calendar.show', 'calendar.sync_all',
+              'inventory.out_of', 'inventory.have', 'inventory.query',
+              'waste.log', 'meal.cooked', 'meal.discarded', 'unknown',
             ],
           },
           list: { type: 'string', description: 'Name or kind of list, e.g. "grocery", "todo", "Groceries"' },
           text: { type: 'string', description: 'Item text. Lowercase, singular when natural.' },
-          reason: { type: 'string', description: 'Only for action=unknown' },
+          reason: { type: 'string', description: 'For action=unknown OR action=waste.log (one of: spoiled, disliked, leftover_not_eaten, accident, not_worth_it, other)' },
           confidence: { type: 'number' },
           resolved_list_id: { type: 'string', description: 'Leave blank — set by server' },
           resolved_list_name: { type: 'string', description: 'Leave blank — set by server' },
           view: { type: 'string', enum: ['day', 'week', 'month'], description: 'Only for calendar.show' },
           anchor_date: { type: 'string', description: 'YYYY-MM-DD. Only for calendar.show. Resolve relative dates to an absolute date.' },
+          phrase: { type: 'string', description: 'The thing being referenced for inventory.* / waste.log — e.g. "soy sauce", "moldy bread"' },
+          recipe_name: { type: 'string', description: 'Recipe name for meal.cooked / meal.discarded' },
+          servings: { type: 'number', description: 'Optional servings made for meal.cooked' },
+          servings_eaten: { type: 'number', description: 'Optional servings eaten before discard for meal.discarded' },
+          percentage: { type: 'number', description: 'Optional 0-100 percent wasted for waste.log' },
         },
         required: ['action'],
       },
@@ -122,6 +137,27 @@ Available actions:
       "show me June 2027" → view=month, anchor_date=2027-06-01
     When only a view is mentioned without a date, anchor_date = today.
     When only a date/month is mentioned without a view, default view = month for a month/year, day for a specific day, week for "this/next week".
+- inventory.out_of: the family is out of (or running low on) something they normally keep stocked.
+    Fields: phrase = the noun phrase ("soy sauce", "low-sodium soy sauce", "eggs").
+    Examples:
+      "we're out of soy sauce" / "no more soy sauce" / "we just used the last of the eggs" → inventory.out_of, phrase="soy sauce" / "eggs"
+- inventory.have: the family just bought / restocked something.
+    Examples: "we just got bread" / "I picked up milk" / "got more eggs" → inventory.have, phrase="bread" / "milk" / "eggs"
+- inventory.query: the user is asking whether something is in stock.
+    Examples: "do we have eggs?" / "are we out of soy sauce?" / "is there milk?" → inventory.query, phrase="eggs" / "soy sauce" / "milk"
+- waste.log: something got thrown out / went bad / wasn't eaten.
+    Fields: phrase = the item ("moldy bread"), optional reason (default "spoiled" when "moldy/expired/bad", "leftover_not_eaten" when "leftovers", "disliked" when "didn't like it"), optional percentage 0-100.
+    Examples:
+      "we threw out the moldy bread" → waste.log, phrase="bread", reason="spoiled"
+      "tossed the leftover soup" → waste.log, phrase="soup", reason="leftover_not_eaten"
+      "half the lettuce went bad" → waste.log, phrase="lettuce", reason="spoiled", percentage=50
+- meal.cooked: the user just cooked / served a meal.
+    Fields: recipe_name (use the name they said), optional servings.
+    Examples: "I made lasagna" / "we just had spaghetti" / "made the chili for dinner" → meal.cooked, recipe_name="lasagna" / "spaghetti" / "chili"
+- meal.discarded: leftovers from a recent meal got thrown out.
+    Fields: recipe_name, optional servings_eaten.
+    Examples: "we threw out the lasagna leftovers" → meal.discarded, recipe_name="lasagna"
+    NOTE: prefer meal.discarded over waste.log when the user names a meal/recipe that was previously cooked.
 - unknown: anything off-topic or that you can't confidently handle.
 
 Rules:

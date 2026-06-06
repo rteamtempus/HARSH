@@ -123,7 +123,8 @@ High-level snapshot (2026-05-24):
 
 | Date | Summary | Ref |
 |---|---|---|
-| 2026-05-24 | Add CLAUDE.md + PROGRESS.md handoff scaffolding | (this commit) |
+| 2026-06-06 | Voice intents for inventory/waste/meals on display + cook/discard UI in recipe lightbox | (this commit) |
+| 2026-05-24 | Add CLAUDE.md + PROGRESS.md handoff scaffolding | |
 | earlier | Initial Angular workspace + Supabase schema + ai-intent function | `143841e` |
 
 (Keep this table rolling — newest first, max ~20 entries.)

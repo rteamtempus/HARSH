@@ -1,5 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { SUPABASE } from './supabase.client';
+import { Database } from './database.types';
+
+export type WasteReasonForIntent = Database['public']['Enums']['waste_reason'];
 
 export type Intent =
   | { action: 'list.add_item'; list: string; text: string; confidence?: number }
@@ -19,6 +22,18 @@ export type Intent =
       confidence?: number;
     }
   | { action: 'calendar.sync_all'; confidence?: number }
+  | { action: 'inventory.out_of'; phrase: string; confidence?: number }
+  | { action: 'inventory.have'; phrase: string; confidence?: number }
+  | { action: 'inventory.query'; phrase: string; confidence?: number }
+  | {
+      action: 'waste.log';
+      phrase: string;
+      reason?: WasteReasonForIntent;
+      percentage?: number;
+      confidence?: number;
+    }
+  | { action: 'meal.cooked'; recipe_name: string; servings?: number; confidence?: number }
+  | { action: 'meal.discarded'; recipe_name: string; servings_eaten?: number; confidence?: number }
   | { action: 'unknown'; reason: string };
 
 export interface IntentResult { intent: Intent; ok: boolean; error?: string }

@@ -196,6 +196,36 @@
           }
         </section>
 
+        @if (!editing()) {
+          <!-- Cook / discard tracking -->
+          <section class="recipe-section">
+            <h3>Meals from this recipe</h3>
+            <div class="cook-actions">
+              <button class="primary small" (click)="logCooked(r)" [disabled]="cookBusy()">I made this</button>
+              <button class="ghost small" (click)="logDiscarded(r)" [disabled]="cookBusy()">Threw out leftovers</button>
+            </div>
+            @if (mealsForViewing().length > 0) {
+              <ul class="meal-history">
+                @for (m of mealsForViewing(); track m.id) {
+                  <li>
+                    <span class="meal-date">{{ m.occurred_at | date:'shortDate' }}</span>
+                    @if (formatServings(m); as s) { <span class="meal-servings">{{ s }}</span> }
+                    @if (m.servings_wasted && m.servings_wasted > 0) {
+                      <span class="meal-waste">— {{ m.servings_wasted }} wasted{{ m.estimated_value_wasted_cents ? ' (' + formatDollars(m.estimated_value_wasted_cents) + ')' : '' }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="muted">No cooks logged yet.</p>
+            }
+          </section>
+        }
+
+        @if (cookToast(); as t) {
+          <p class="toast">{{ t }}</p>
+        }
+
         <footer>
           @if (editing()) {
             <button class="ghost" (click)="cancelEdit()">Cancel</button>

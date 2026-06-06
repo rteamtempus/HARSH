@@ -129,6 +129,13 @@
       photo stays as the source of truth; the extracted text is the
       queryable layer.
     </p>
+    <p>
+      <strong>I made this / Threw out leftovers</strong> buttons on the
+      recipe lightbox log a meal event tied to the recipe. The discard
+      flow asks how many servings you actually ate and derives waste
+      from the difference. Recent cooks (last 60 days) show under the
+      recipe with their waste status.
+    </p>
   </article>
 
   <article id="inventory">
@@ -204,6 +211,24 @@
       Waste page it streams into the fridge-cleanout dump. The display
       app has wake-word support ("Hey HARSH") and can switch calendar
       views or sync calendars by voice.
+    </p>
+    <p>
+      <strong>Inventory by voice (display).</strong> Say
+      <em>"we're out of soy sauce"</em> and it marks the matched item
+      out + adds it to the grocery list. Say
+      <em>"we just got bread"</em> to put it back in stock. Say
+      <em>"do we have eggs?"</em> to ask. The resolution ladder picks
+      the right variant when there are multiple ("low-sodium soy sauce"
+      vs "dark soy sauce"), and falls back to adding the bare phrase to
+      groceries when nothing matches.
+    </p>
+    <p>
+      <strong>Waste + meals by voice.</strong>
+      <em>"We threw out the moldy bread"</em> logs a waste event with
+      a guessed reason and cost estimate.
+      <em>"I made lasagna"</em> logs a meal event against the matched
+      recipe. <em>"We threw out the lasagna leftovers"</em> closes the
+      loop on the most recent cook within the last 7 days.
     </p>
   </article>
 

@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import {
   FamilyService,
+  MealEventRow,
+  MealService,
   RecipeIngredientRow,
   RecipeRow,
   RecipeService,
@@ -60,6 +62,7 @@ function emptyIngredientDraft(): IngredientDraft {
 })
 export class RecipesComponent implements OnInit, OnDestroy {
   protected readonly recipes = inject(RecipeService);
+  protected readonly meals = inject(MealService);
   private readonly family = inject(FamilyService);
   private readonly router = inject(Router);
 
@@ -76,6 +79,9 @@ export class RecipesComponent implements OnInit, OnDestroy {
   readonly analyzing = signal(false);
   readonly editing = signal(false);
   readonly savingEdit = signal(false);
+  readonly cookBusy = signal(false);
+  readonly mealsForViewing = signal<MealEventRow[]>([]);
+  readonly cookToast = signal<string | null>(null);
 
   draft: Draft = { title: '', notes: '', tags: '', autoAnalyze: true };
   editDraft: EditDraft = { title: '', cost_dollars: null, instructions: '', notes: '', ingredients: [] };
@@ -114,6 +120,7 @@ export class RecipesComponent implements OnInit, OnDestroy {
       const fam = this.family.family() ?? (await this.family.loadCurrent());
       if (!fam) { await this.router.navigateByUrl('/setup'); return; }
       await this.recipes.load(fam.id);
+      this.meals.load(fam.id).catch(() => { /* non-fatal */ });
     } catch (e: any) {
       this.error.set(e?.message ?? 'Could not load recipes');
     }
@@ -121,6 +128,7 @@ export class RecipesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.recipes.unsubscribe();
+    this.meals.unsubscribe();
     const p = this.previewUrl();
     if (p) URL.revokeObjectURL(p);
   }
@@ -224,6 +232,7 @@ export class RecipesComponent implements OnInit, OnDestroy {
     this.fullUrl.set(null);
     this.ingredients.set([]);
     this.extractError.set(null);
+    this.refreshMealsFor(r.id);
     if (r.photo_path) {
       const url = await this.recipes.photoUrl(r);
       this.fullUrl.set(url);
@@ -234,6 +243,89 @@ export class RecipesComponent implements OnInit, OnDestroy {
     } catch (e: any) {
       this.extractError.set(e?.message ?? 'Could not load ingredients');
     }
+  }
+
+  // ===== Cook / discard tracking =====
+
+  /** "I made this" — log a meal_event for this recipe. */
+  async logCooked(r: RecipeRow): Promise<void> {
+    const fam = this.family.family();
+    if (!fam) return;
+    this.cookBusy.set(true);
+    try {
+      await this.meals.logCooked({
+        familyId: fam.id,
+        recipeId: r.id,
+        recipeName: r.title,
+        servingsMade: r.servings ?? null,
+        estimatedTotalCostCents: r.estimated_cost_cents ?? null,
+        memberId: this.family.me()?.id ?? null,
+        source: 'manual',
+      });
+      this.refreshMealsFor(r.id);
+      this.flashToast(`Logged "${r.title}" cooked.`);
+    } catch (e: any) {
+      this.flashToast(`Couldn't log meal: ${e?.message ?? 'unknown error'}`);
+    } finally {
+      this.cookBusy.set(false);
+    }
+  }
+
+  /**
+   * "Threw out leftovers" — record discard against the most recent open
+   * meal_event, or backfill one if none exists.
+   */
+  async logDiscarded(r: RecipeRow): Promise<void> {
+    const fam = this.family.family();
+    if (!fam) return;
+    const eatenRaw = prompt(
+      `How many servings of "${r.title}" did you actually eat before discarding? (0 = none, leave blank for "all but the leftovers")`,
+      '',
+    );
+    if (eatenRaw === null) return; // user cancelled
+    const eaten = eatenRaw.trim() === '' ? null : Math.max(0, Number(eatenRaw));
+    if (eaten !== null && Number.isNaN(eaten)) {
+      this.flashToast('That wasn\'t a number.');
+      return;
+    }
+    this.cookBusy.set(true);
+    try {
+      await this.meals.recordDiscard({
+        familyId: fam.id,
+        recipeName: r.title,
+        servingsEaten: eaten,
+        memberId: this.family.me()?.id ?? null,
+        source: 'manual',
+      });
+      this.refreshMealsFor(r.id);
+      this.flashToast(`Logged "${r.title}" leftovers discarded.`);
+    } catch (e: any) {
+      this.flashToast(`Couldn't log discard: ${e?.message ?? 'unknown error'}`);
+    } finally {
+      this.cookBusy.set(false);
+    }
+  }
+
+  private refreshMealsFor(recipeId: string): void {
+    const cutoff = Date.now() - 60 * 24 * 3600 * 1000; // last 60 days
+    const matches = this.meals.recent()
+      .filter((m) => m.recipe_id === recipeId && new Date(m.occurred_at).getTime() >= cutoff)
+      .slice(0, 5);
+    this.mealsForViewing.set(matches);
+  }
+
+  formatServings(m: MealEventRow): string {
+    const made = m.servings_made;
+    const eaten = m.servings_eaten;
+    if (made == null && eaten == null) return '';
+    if (eaten == null) return `${made} served`;
+    if (made == null) return `${eaten} eaten`;
+    return `${eaten}/${made} eaten`;
+  }
+
+  private flashToast(msg: string): void {
+    this.cookToast.set(msg);
+    setTimeout(() => this.cookToast.set(null), 2500);
   }
 
   async extractRecipe(r: RecipeRow) {
