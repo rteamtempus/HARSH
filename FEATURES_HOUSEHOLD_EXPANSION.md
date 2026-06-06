@@ -326,6 +326,19 @@ Same as before plus:
 - **D4 (quantity):** Boolean `in_stock` is the default. `quantity_count` is
   opt-in per item — toggleable from the item edit screen for things like
   toilet paper, soda cans, Zyn tins, wine bottles.
+- **D9 (meal capture friction):** Multi-path. Whichever surface she's on
+  when the thought hits, it works:
+  - Cook-time voice/text: "I'm making chicken curry" → meal_event with
+    `servings_made` (defaults to the recipe's `servings`, can be edited).
+  - Discard-time voice/text: "we tossed the rest of the curry" → looks up
+    most recent meal_event for that recipe within the last 7 days, links
+    a waste_event with `leftover_not_eaten`. If no recent meal_event,
+    backfills one (HARSH infers the meal was made).
+  - Sunday weekly recap: at the meeting, HARSH asks "what meals did you
+    make this week?" — fallback to catch anything that slipped through.
+  Rationale: more capture surfaces = higher chance the data actually
+  gets recorded. Each path produces the same meal_event shape so the
+  weekly report aggregates cleanly.
 - **D8 (budget reset day):** Weekly clock resets **Monday morning**.
   Spending + waste report fires **Sunday ~19:00** local — lands right
   before the family's weekly planning meeting so the report becomes input
