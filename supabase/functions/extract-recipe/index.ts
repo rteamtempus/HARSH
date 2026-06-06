@@ -77,7 +77,7 @@ Important:
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  let body: { recipe_id?: string };
+  let body: { recipe_id?: string; overwrite_title?: boolean };
   try { body = await req.json(); } catch { return json({ error: 'invalid_json' }, 400); }
   if (!body.recipe_id) return json({ error: 'recipe_id_required' }, 400);
 
@@ -160,9 +160,17 @@ Deno.serve(async (req: Request) => {
       extracted_at: new Date().toISOString(),
       extraction_model: MODEL,
     };
-    // Only update title if Gemini found one AND the existing title looks like
-    // a filename (the auto-fill case from photo upload).
-    if (parsed.title && /\.(jpg|jpeg|png|webp|heic|gif)$/i.test(recipe.title)) {
+    // Update title in three cases:
+    //  - caller explicitly asked (overwrite_title=true; new-recipe auto-analyze)
+    //  - existing title looks like a filename (the auto-fill case)
+    //  - existing title is the new-recipe placeholder
+    if (
+      parsed.title && (
+        body.overwrite_title ||
+        /\.(jpg|jpeg|png|webp|heic|gif)$/i.test(recipe.title) ||
+        recipe.title === 'Untitled recipe'
+      )
+    ) {
       recipePatch.title = parsed.title;
     }
     await admin.from('recipes').update(recipePatch).eq('id', recipe.id);

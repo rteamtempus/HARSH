@@ -127,17 +127,43 @@ export class RecipeService {
    * Kick the Gemini-Vision extractor. Returns when extraction completes;
    * realtime will refresh `recipes`/`recipe_ingredients` signals.
    */
-  async extractFromPhoto(recipeId: string): Promise<{
+  async extractFromPhoto(recipeId: string, options: { overwriteTitle?: boolean } = {}): Promise<{
     ingredients_count: number;
     instructions_preview: string;
     total_cost_cents: number | null;
   }> {
     const { data, error } = await this.supabase.functions.invoke('extract-recipe', {
-      body: { recipe_id: recipeId },
+      body: { recipe_id: recipeId, overwrite_title: options.overwriteTitle ?? false },
     });
     if (error) throw error;
     if (!data || (data as any).error) throw new Error((data as any)?.error ?? 'extraction failed');
     return data as any;
+  }
+
+  /**
+   * Replace the ingredients for a recipe wholesale with the given list.
+   * Used by the edit-mode save path; matches what extract does on re-run.
+   */
+  async replaceIngredients(
+    recipeId: string,
+    familyId: string,
+    ingredients: Array<Partial<RecipeIngredientInsert> & { name: string }>,
+  ): Promise<void> {
+    await this.supabase.from('recipe_ingredients').delete().eq('recipe_id', recipeId);
+    if (ingredients.length === 0) return;
+    const rows = ingredients.map((ing, idx) => ({
+      recipe_id: recipeId,
+      family_id: familyId,
+      name: ing.name.trim() || 'unnamed',
+      quantity: ing.quantity ?? null,
+      unit: ing.unit ?? null,
+      free_text_amount: ing.free_text_amount ?? null,
+      notes: ing.notes ?? null,
+      estimated_cost_cents: ing.estimated_cost_cents ?? null,
+      sort_order: idx,
+    }));
+    const { error } = await this.supabase.from('recipe_ingredients').insert(rows);
+    if (error) throw error;
   }
 
   // ===== Ingredient CRUD (manual edits after extraction) =====

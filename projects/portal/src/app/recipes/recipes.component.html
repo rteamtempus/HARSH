@@ -27,9 +27,16 @@
           <img class="preview" [src]="url" alt="Recipe preview" />
         }
 
+        @if (previewUrl()) {
+          <label class="checkbox">
+            <input type="checkbox" [(ngModel)]="draft.autoAnalyze" name="autoAnalyze" />
+            Analyze with AI on save (auto-fills title, ingredients, instructions, cost)
+          </label>
+        }
+
         <label>
-          Title
-          <input type="text" [(ngModel)]="draft.title" name="title" placeholder="e.g. Grandma's coffee cake" required />
+          Title @if (draft.autoAnalyze) { <span class="hint inline">— optional if analyzing</span> }
+          <input type="text" [(ngModel)]="draft.title" name="title" placeholder="e.g. Grandma's coffee cake" [required]="!draft.autoAnalyze" />
         </label>
 
         <label>
@@ -45,7 +52,9 @@
         <div class="actions">
           <button type="button" class="ghost" (click)="cancel()">Cancel</button>
           <button type="submit" class="primary" [disabled]="busy()">
-            @if (busy()) { Saving… } @else { Save }
+            @if (busy()) {
+              @if (analyzing()) { Analyzing photo… } @else { Saving… }
+            } @else { Save }
           </button>
         </div>
         @if (error(); as e) { <p class="error">{{ e }}</p> }
@@ -78,25 +87,34 @@
   }
 
   @if (viewing(); as r) {
-    <div class="lightbox" (click)="viewing.set(null)">
+    <div class="lightbox" (click)="closeLightbox()">
       <div class="lightbox-inner" (click)="$event.stopPropagation()">
         <header>
-          <h2>{{ r.title }}</h2>
-          <button class="close" (click)="viewing.set(null)" aria-label="Close">×</button>
+          @if (editing()) {
+            <input class="title-edit" type="text" [(ngModel)]="editDraft.title" placeholder="Recipe title" />
+          } @else {
+            <h2>{{ r.title }}</h2>
+          }
+          <div class="header-actions">
+            @if (!editing()) {
+              <button class="link" (click)="startEdit(r)">Edit</button>
+            }
+            <button class="close" (click)="closeLightbox()" aria-label="Close">×</button>
+          </div>
         </header>
 
         @if (fullUrl(); as url) {
           <img class="full" [src]="url" [alt]="r.title" />
         }
 
-        @if (r.photo_path && !r.extracted_at) {
+        @if (r.photo_path && !r.extracted_at && !editing()) {
           <div class="extract-cta">
             <p class="cta-hint">Read the recipe with AI — extracts ingredients, instructions, and a rough cost estimate.</p>
             <button class="primary" (click)="extractRecipe(r)" [disabled]="extracting()">
               @if (extracting()) { Reading the photo… } @else { ✨ Extract from photo }
             </button>
           </div>
-        } @else if (r.extracted_at) {
+        } @else if (r.extracted_at && !editing()) {
           <div class="extract-meta">
             Extracted {{ r.extracted_at | date:'shortDate' }} ·
             <button class="link" (click)="extractRecipe(r)" [disabled]="extracting()">Re-extract</button>
@@ -105,51 +123,88 @@
 
         @if (extractError(); as e) { <p class="error">{{ e }}</p> }
 
-        <!-- Cost summary -->
-        @if (r.estimated_cost_cents != null) {
-          <div class="cost-row">
-            <span>Estimated total cost</span>
+        <!-- Cost row -->
+        <div class="cost-row">
+          <span>Estimated total cost</span>
+          @if (editing()) {
+            <input class="cost-input" type="number" [(ngModel)]="editDraft.cost_dollars" step="0.01" min="0" placeholder="0.00" />
+          } @else if (r.estimated_cost_cents != null) {
             <strong>{{ formatDollars(r.estimated_cost_cents) }}</strong>
-            <button class="link" (click)="editCost(r)">Edit</button>
-          </div>
-        }
+          } @else {
+            <span class="muted">—</span>
+          }
+        </div>
 
         <!-- Ingredients -->
-        @if (ingredients().length > 0) {
-          <section class="recipe-section">
-            <h3>Ingredients</h3>
-            <ul class="ingredients">
-              @for (ing of ingredients(); track ing.id) {
-                <li>
-                  <span class="amount">{{ formatAmount(ing) }}</span>
-                  <span class="name">{{ ing.name }}</span>
-                  @if (ing.notes) { <span class="ing-notes">({{ ing.notes }})</span> }
-                  @if (ing.estimated_cost_cents) {
-                    <span class="ing-cost">{{ formatDollars(ing.estimated_cost_cents) }}</span>
-                  }
+        <section class="recipe-section">
+          <h3>Ingredients</h3>
+          @if (editing()) {
+            <ul class="ingredients edit-mode">
+              @for (ing of editDraft.ingredients; track $index; let i = $index) {
+                <li class="ing-edit-row">
+                  <input class="qty-input" type="number" step="0.01" min="0" [(ngModel)]="ing.quantity" placeholder="qty" [attr.aria-label]="'Quantity ' + (i+1)" />
+                  <input class="unit-input" type="text" [(ngModel)]="ing.unit" placeholder="unit" [attr.aria-label]="'Unit ' + (i+1)" />
+                  <input class="name-input" type="text" [(ngModel)]="ing.name" placeholder="ingredient" [attr.aria-label]="'Name ' + (i+1)" />
+                  <input class="notes-input" type="text" [(ngModel)]="ing.notes" placeholder="notes (minced, etc.)" [attr.aria-label]="'Notes ' + (i+1)" />
+                  <input class="cost-input small" type="number" step="0.01" min="0" [(ngModel)]="ing.cost_dollars" placeholder="$" [attr.aria-label]="'Cost ' + (i+1)" />
+                  <button type="button" class="remove" (click)="removeIngredientRow(i)" aria-label="Remove">×</button>
                 </li>
               }
             </ul>
-          </section>
-        }
+            <button type="button" class="ghost small" (click)="addIngredientRow()">+ Add ingredient</button>
+          } @else {
+            @if (ingredients().length > 0) {
+              <ul class="ingredients">
+                @for (ing of ingredients(); track ing.id) {
+                  <li>
+                    <span class="amount">{{ formatAmount(ing) }}</span>
+                    <span class="name">{{ ing.name }}</span>
+                    @if (ing.notes) { <span class="ing-notes">({{ ing.notes }})</span> }
+                    @if (ing.estimated_cost_cents) {
+                      <span class="ing-cost">{{ formatDollars(ing.estimated_cost_cents) }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="muted">No ingredients yet.</p>
+            }
+          }
+        </section>
 
         <!-- Instructions -->
-        @if (r.instructions) {
-          <section class="recipe-section">
-            <h3>Instructions</h3>
+        <section class="recipe-section">
+          <h3>Instructions</h3>
+          @if (editing()) {
+            <textarea class="instructions-edit" [(ngModel)]="editDraft.instructions" rows="8" placeholder="1. Preheat the oven…"></textarea>
+          } @else if (r.instructions) {
             <pre class="instructions">{{ r.instructions }}</pre>
-          </section>
-        }
+          } @else {
+            <p class="muted">No instructions yet.</p>
+          }
+        </section>
 
-        @if (r.notes) {
-          <section class="recipe-section">
-            <h3>Notes</h3>
+        <!-- Notes -->
+        <section class="recipe-section">
+          <h3>Notes</h3>
+          @if (editing()) {
+            <textarea class="notes-edit" [(ngModel)]="editDraft.notes" rows="3" placeholder="Anything that doesn't fit elsewhere…"></textarea>
+          } @else if (r.notes) {
             <p class="notes">{{ r.notes }}</p>
-          </section>
-        }
+          } @else {
+            <p class="muted">No notes.</p>
+          }
+        </section>
 
         <footer>
-          <button class="danger" (click)="remove(r)">Delete</button>
+          @if (editing()) {
+            <button class="ghost" (click)="cancelEdit()">Cancel</button>
+            <button class="primary" (click)="saveEdit(r)" [disabled]="savingEdit()">
+              @if (savingEdit()) { Saving… } @else { Save changes }
+            </button>
+          } @else {
+            <button class="danger" (click)="remove(r)">Delete</button>
+          }
         </footer>
       </div>
     </div>

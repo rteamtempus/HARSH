@@ -65,4 +65,31 @@ h1 { margin:0; font-family:var(--font-display); font-size:var(--fs-h1); }
 
 .instructions { white-space:pre-wrap; font-family:inherit; margin:0; line-height:1.5; color:var(--text-primary); background:var(--bg-surface); padding:var(--s-3); border-radius:var(--r-md); }
 
+/* Edit mode */
+.title-edit { flex:1; padding:var(--s-2) var(--s-3); font-size:var(--fs-h2); font-family:var(--font-display); border:1px solid var(--line-default); border-radius:var(--r-md); background:var(--bg-sunken); color:var(--text-primary); }
+.header-actions { display:flex; gap:var(--s-2); align-items:center; }
+.cost-row .cost-input { padding:var(--s-1) var(--s-2); font-size:var(--fs-body); border:1px solid var(--line-default); border-radius:var(--r-md); background:var(--bg-sunken); color:var(--text-primary); width:6rem; font-variant-numeric:tabular-nums; }
+.muted { color:var(--text-tertiary); margin:0; font-style:italic; }
+
+.checkbox { display:flex; flex-direction:row !important; align-items:center; gap:var(--s-2); }
+.hint.inline { color:var(--text-tertiary); font-size:var(--fs-micro); margin:0; font-weight:400; }
+
+.ingredients.edit-mode { gap:var(--s-2); }
+.ing-edit-row { display:grid; grid-template-columns:4rem 4.5rem 1fr 1fr 4.5rem auto; gap:var(--s-2); align-items:center; border:1px solid var(--line-subtle); border-radius:var(--r-md); padding:var(--s-2); background:var(--bg-surface); }
+.ing-edit-row input { padding:var(--s-1) var(--s-2); font-size:var(--fs-small); border:1px solid var(--line-default); border-radius:var(--r-sm); background:var(--bg-sunken); color:var(--text-primary); min-width:0; font-family:inherit; }
+.ing-edit-row .qty-input { font-variant-numeric:tabular-nums; }
+.ing-edit-row .cost-input.small { font-variant-numeric:tabular-nums; }
+.ing-edit-row .remove { background:transparent; border:0; color:var(--text-tertiary); font-size:var(--fs-h3); cursor:pointer; padding:0 var(--s-1); line-height:1; }
+.ing-edit-row .remove:hover { color:var(--danger); }
+
+.ghost.small { padding:var(--s-1) var(--s-3); font-size:var(--fs-small); background:transparent; border:1px solid var(--line-default); color:var(--text-primary); border-radius:var(--r-md); cursor:pointer; align-self:flex-start; }
+
+.instructions-edit, .notes-edit { width:100%; box-sizing:border-box; padding:var(--s-3); font-family:inherit; font-size:var(--fs-body); line-height:1.5; border:1px solid var(--line-default); border-radius:var(--r-md); background:var(--bg-sunken); color:var(--text-primary); resize:vertical; }
+
+@media (max-width:540px) {
+  .ing-edit-row { grid-template-columns:4rem 4.5rem 1fr auto; }
+  .ing-edit-row .notes-input { grid-column:1 / 4; }
+  .ing-edit-row .cost-input.small { grid-column:1 / 3; }
+}
+
 .error { color:var(--danger); margin:var(--s-3) 0 0; font-size:var(--fs-small); }

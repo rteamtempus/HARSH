@@ -14,7 +14,41 @@ import { HeaderComponent } from '../header/header.component';
 // Photo + title capture, browse grid, view full size. Gemini-Vision text
 // extraction is deliberately deferred to v2.
 
-interface Draft { title: string; notes: string; tags: string }
+interface Draft { title: string; notes: string; tags: string; autoAnalyze: boolean }
+
+interface IngredientDraft {
+  id: string | null;
+  name: string;
+  quantity: number | null;
+  unit: string;
+  free_text_amount: string;
+  notes: string;
+  cost_dollars: number | null;
+}
+
+interface EditDraft {
+  title: string;
+  cost_dollars: number | null;
+  instructions: string;
+  notes: string;
+  ingredients: IngredientDraft[];
+}
+
+function rowToIngredientDraft(row: RecipeIngredientRow): IngredientDraft {
+  return {
+    id: row.id,
+    name: row.name,
+    quantity: row.quantity,
+    unit: row.unit ?? '',
+    free_text_amount: row.free_text_amount ?? '',
+    notes: row.notes ?? '',
+    cost_dollars: row.estimated_cost_cents != null ? row.estimated_cost_cents / 100 : null,
+  };
+}
+
+function emptyIngredientDraft(): IngredientDraft {
+  return { id: null, name: '', quantity: null, unit: '', free_text_amount: '', notes: '', cost_dollars: null };
+}
 
 @Component({
   selector: 'harsh-recipes',
@@ -39,8 +73,12 @@ export class RecipesComponent implements OnInit, OnDestroy {
   readonly ingredients = signal<RecipeIngredientRow[]>([]);
   readonly extracting = signal(false);
   readonly extractError = signal<string | null>(null);
+  readonly analyzing = signal(false);
+  readonly editing = signal(false);
+  readonly savingEdit = signal(false);
 
-  draft: Draft = { title: '', notes: '', tags: '' };
+  draft: Draft = { title: '', notes: '', tags: '', autoAnalyze: true };
+  editDraft: EditDraft = { title: '', cost_dollars: null, instructions: '', notes: '', ingredients: [] };
   private file: File | null = null;
 
   constructor() {
@@ -88,7 +126,7 @@ export class RecipesComponent implements OnInit, OnDestroy {
   }
 
   startAdd() {
-    this.draft = { title: '', notes: '', tags: '' };
+    this.draft = { title: '', notes: '', tags: '', autoAnalyze: true };
     this.file = null;
     this.adding.set(true);
     this.error.set(null);
@@ -118,7 +156,8 @@ export class RecipesComponent implements OnInit, OnDestroy {
   async save() {
     const fam = this.family.family();
     if (!fam) return;
-    if (!this.draft.title.trim()) {
+    const wantAnalyze = !!(this.file && this.draft.autoAnalyze);
+    if (!this.draft.title.trim() && !wantAnalyze) {
       this.error.set('Add a title');
       return;
     }
@@ -129,25 +168,48 @@ export class RecipesComponent implements OnInit, OnDestroy {
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean);
+      const title = this.draft.title.trim() || 'Untitled recipe';
+
+      let saved: RecipeRow | null = null;
       if (this.file) {
-        await this.recipes.createFromPhoto({
+        saved = await this.recipes.createFromPhoto({
           familyId: fam.id,
-          title: this.draft.title,
+          title,
           photo: this.file,
           notes: this.draft.notes.trim() || undefined,
           tags,
           memberId: this.family.me()?.id ?? null,
         });
       } else {
-        await this.recipes.create({
+        saved = await this.recipes.create({
           family_id: fam.id,
-          title: this.draft.title.trim(),
+          title,
           notes: this.draft.notes.trim() || null,
           tags,
           source: 'manual',
           created_by_member_id: this.family.me()?.id ?? null,
         });
       }
+
+      // Auto-analyze on save if requested and a photo is present.
+      if (wantAnalyze && saved) {
+        this.analyzing.set(true);
+        try {
+          // Overwrite title with whatever the photo says when user left it
+          // blank (we set the "Untitled recipe" placeholder above).
+          const overwriteTitle = !this.draft.title.trim();
+          await this.recipes.extractFromPhoto(saved.id, { overwriteTitle });
+        } catch (e: any) {
+          // Don't fail the save — the row exists, the user can re-extract later.
+          this.error.set(`Saved, but extraction failed: ${e?.message ?? 'unknown error'}`);
+        } finally {
+          this.analyzing.set(false);
+        }
+        // Open the lightbox on the new recipe so the user sees the result.
+        const fresh = this.recipes.recipes().find((x) => x.id === saved.id);
+        if (fresh) await this.open(fresh);
+      }
+
       this.adding.set(false);
       this.clearPreview();
     } catch (e: any) {
@@ -198,19 +260,87 @@ export class RecipesComponent implements OnInit, OnDestroy {
     }
   }
 
-  async editCost(r: RecipeRow) {
-    const current = r.estimated_cost_cents != null
-      ? (r.estimated_cost_cents / 100).toFixed(2)
-      : '';
-    const input = prompt('Total estimated cost ($):', current);
-    if (input == null) return;
-    const dollars = parseFloat(input);
-    if (Number.isNaN(dollars)) return;
+  // ===== Inline edit mode =====
+
+  startEdit(r: RecipeRow): void {
+    this.editDraft = {
+      title: r.title,
+      cost_dollars: r.estimated_cost_cents != null ? r.estimated_cost_cents / 100 : null,
+      instructions: r.instructions ?? '',
+      notes: r.notes ?? '',
+      ingredients: this.ingredients().map(rowToIngredientDraft),
+    };
+    if (this.editDraft.ingredients.length === 0) {
+      this.editDraft.ingredients.push(emptyIngredientDraft());
+    }
+    this.editing.set(true);
+    this.extractError.set(null);
+  }
+
+  cancelEdit(): void {
+    this.editing.set(false);
+    this.extractError.set(null);
+  }
+
+  addIngredientRow(): void {
+    this.editDraft.ingredients.push(emptyIngredientDraft());
+  }
+
+  removeIngredientRow(i: number): void {
+    this.editDraft.ingredients.splice(i, 1);
+  }
+
+  async saveEdit(r: RecipeRow): Promise<void> {
+    if (!this.editDraft.title.trim()) {
+      this.extractError.set('Title cannot be empty');
+      return;
+    }
+    const fam = this.family.family();
+    if (!fam) return;
+
+    this.savingEdit.set(true);
+    this.extractError.set(null);
     try {
-      await this.recipes.update(r.id, { estimated_cost_cents: Math.round(dollars * 100) });
+      await this.recipes.update(r.id, {
+        title: this.editDraft.title.trim(),
+        estimated_cost_cents: this.editDraft.cost_dollars != null
+          ? Math.round(this.editDraft.cost_dollars * 100)
+          : null,
+        instructions: this.editDraft.instructions.trim() || null,
+        notes: this.editDraft.notes.trim() || null,
+      });
+      const ings = this.editDraft.ingredients
+        .filter((i) => i.name.trim().length > 0)
+        .map((i) => ({
+          name: i.name.trim(),
+          quantity: i.quantity ?? null,
+          unit: i.unit.trim() || null,
+          free_text_amount: i.free_text_amount.trim() || null,
+          notes: i.notes.trim() || null,
+          estimated_cost_cents: i.cost_dollars != null ? Math.round(i.cost_dollars * 100) : null,
+        }));
+      await this.recipes.replaceIngredients(r.id, fam.id, ings);
+
+      // Refresh the lightbox view with the updated data.
+      const fresh = this.recipes.recipes().find((x) => x.id === r.id);
+      if (fresh) {
+        this.viewing.set(fresh);
+        this.ingredients.set(await this.recipes.loadIngredients(r.id));
+      }
+      this.editing.set(false);
     } catch (e: any) {
       this.extractError.set(e?.message ?? 'Save failed');
+    } finally {
+      this.savingEdit.set(false);
     }
+  }
+
+  closeLightbox(): void {
+    if (this.editing()) {
+      if (!confirm('Discard your changes?')) return;
+      this.editing.set(false);
+    }
+    this.viewing.set(null);
   }
 
   formatAmount(ing: RecipeIngredientRow): string {
