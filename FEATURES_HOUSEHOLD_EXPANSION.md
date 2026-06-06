@@ -300,23 +300,53 @@ Same as before plus:
 
 ---
 
-## 9. Open Questions — Slim List
+## 9. Resolved Decisions (Captured from Owner)
+
+> Recorded as the owner answers them, so the MD stays the source of truth even
+> if context windows roll over. Build H2 against the answers in this section.
+
+- **D1 (recipe + meal cost):** Editable. Auto-derive from matched inventory
+  items / receipts, but every recipe and meal_event row has a writable
+  `estimated_cost_cents` so wife can update when she catches a sale.
+- **D1 also (standalone waste):** `waste_events.meal_event_id` and `item_id`
+  both nullable. Tossed half a melon? Standalone waste row with free_text_name
+  and AI cost estimate is fine.
+- **D2 ("we're out of X" resolution ladder):**
+  1. Category has 0 items → add category-named item to grocery list.
+  2. Category has 1 item → mark out, add to grocery.
+  3. Category has multiple + voice has an indicator ("low sodium", "dark") →
+     match by indicator.
+  4. No indicator → use the `is_category_default = true` variant.
+  5. Anything without a category goes to **Misc**, can be reassigned later.
+  6. If voice mentions a category that doesn't exist yet, ai-intent should
+     ask once before silently creating it.
+- **D3 (pre-seeded categories):** Use the proposed set; she can edit/extend.
+  Pantry · Fridge · Freezer · Spices · Bread & baked · Drinks · Alcohol ·
+  Cleaning · Bathroom · Pet · Tobacco/nicotine · Misc.
+- **D4 (quantity):** Boolean `in_stock` is the default. `quantity_count` is
+  opt-in per item — toggleable from the item edit screen for things like
+  toilet paper, soda cans, Zyn tins, wine bottles.
+- **D5 (waste capture path):** NEVER prompt at grocery checkoff. Two capture
+  paths instead:
+  - **Passive:** regular brain dump recognizes incidental waste mentions
+    ("I tossed the moldy bread") as waste events, not list items.
+  - **Dedicated:** a separate "waste brain dump" surface (its own route +
+    mic button) for fridge-cleanout sessions. She types or speaks a stream
+    ("the mustard was half used, threw out the milk, the lettuce was gone")
+    and the LLM extracts a waste_event per thing mentioned.
+    - Each item matched against inventory by name for known cost.
+    - Unmatched items get AI-estimated cost from a typical-price guess.
+    - Each item carries an optional **waste percentage** ("half used",
+      "almost empty") that multiplies cost (50% of $4 mustard → $2 wasted).
+    - Review cards before commit (like brain dump capture).
+  - Future-automation ideas to revisit, but not for v1: receipt-date-aware
+    expiry guesses, photo of trash to bulk-log.
+
+## 10. Open Questions — Slim List
 
 Marked **Q:** for easy scanning. Pruned to the ones that block v1 build.
 
-1. **Q1: Recipe cost — auto only, or manual entry option?** I'd auto-compute from matched inventory items + receipt data; she never has to enter prices. OK to skip manual entry for v1? *(Affects: recipes v2 build complexity.)*
-
-2. **Q2: "We're out of [category]" ambiguity resolution** — pick one:
-   - (a) Voice asks back: "Which one — Kikkoman or tamari?"
-   - (b) Default to the `is_category_default` variant if set, else (a)
-   - (c) Add generic "[category]" to grocery list and let her sort it on shopping day
-   - I lean (b) — it's the calmest UX. *(Affects: voice intent prompts.)*
-
-3. **Q3: Pre-seeded categories** — does the list in §4 (Pantry / Fridge / Freezer / Spices / Bread / Drinks / Alcohol / Cleaning / Bathroom / Pet / Tobacco / Misc) match her mental model? Add/remove anything?
-
-4. **Q4: Quantity counts** — boolean in_stock by default; opt-in counts for things like toilet paper, dish soap, soda cans? Or counts everywhere? *(I still recommend boolean default — counts on demand. Worth confirming for her workflow.)*
-
-5. **Q5: Passive waste capture intensity** — brain dump should recognize phrases like "I tossed the moldy bread" as waste events instead of list items. But should it ALSO occasionally prompt — e.g. when the grocery list is checked off and a previous-version item exists, ask "what happened to the old [item]"? Or never prompt, only capture what she volunteers? *(I lean never prompt; prompts feel like nagging.)*
+Q1–Q5 resolved in §9 above.
 
 6. **Q6: Waste reasons list** — does this cover her patterns: expired / disliked / spoiled / forgot / leftover_not_eaten / broken / lost / overcooked / other? Anything specific to your household?
 
