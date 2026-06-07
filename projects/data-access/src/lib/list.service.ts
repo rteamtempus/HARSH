@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { SUPABASE } from './supabase.client';
 import { Database } from './database.types';
+import { InventoryService } from './inventory.service';
 
 export type ListRow = Database['public']['Tables']['lists']['Row'];
 export type ListItemRow = Database['public']['Tables']['list_items']['Row'];
@@ -14,6 +15,7 @@ export type ListItemRow = Database['public']['Tables']['list_items']['Row'];
 @Injectable({ providedIn: 'root' })
 export class ListService {
   private readonly supabase = inject(SUPABASE);
+  private readonly inventory = inject(InventoryService);
 
   readonly lists = signal<ListRow[]>([]);
   readonly items = signal<ListItemRow[]>([]);
@@ -106,14 +108,46 @@ export class ListService {
   }
 
   async toggleItem(item: ListItemRow): Promise<void> {
+    const becomingChecked = !item.checked;
     const { error } = await this.supabase
       .from('list_items')
       .update({
-        checked: !item.checked,
-        checked_at: !item.checked ? new Date().toISOString() : null,
+        checked: becomingChecked,
+        checked_at: becomingChecked ? new Date().toISOString() : null,
       })
       .eq('id', item.id);
     if (error) throw error;
+
+    // Autoroute: when a grocery item is checked off, mark the matching
+    // inventory item back in stock. Best-effort — never throw from this path.
+    if (becomingChecked) {
+      const list = this.lists().find((l) => l.id === item.list_id);
+      if (list?.kind === 'grocery') {
+        try {
+          await this.routeGroceryToInventory(item);
+        } catch (e) {
+          console.warn('inventory autoroute failed', e);
+        }
+      }
+    }
+  }
+
+  /**
+   * When a grocery item is checked off, try to resolve it against the
+   * inventory and flip the matched item back in stock. Uses the same D2
+   * resolution ladder as voice intents so "low-sodium soy sauce" lands on
+   * the right variant. No-op when nothing matches — we don't auto-create
+   * inventory rows from groceries.
+   */
+  private async routeGroceryToInventory(item: ListItemRow): Promise<void> {
+    if (this.inventory.items().length === 0) return; // inventory not loaded; skip silently
+    const resolution = this.inventory.resolveForVoice(item.text);
+    if (resolution.kind !== 'item') return;
+    if (resolution.item.in_stock) return; // already in stock; nothing to do
+    await this.inventory.setInStock(resolution.item, true, {
+      source: 'grocery_check',
+      memberId: item.added_by_member_id ?? null,
+    });
   }
 
   async removeItem(id: string): Promise<void> {

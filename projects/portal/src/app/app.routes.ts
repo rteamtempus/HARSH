@@ -64,6 +64,12 @@ export const routes: Routes = [
       import('./waste/waste.component').then((m) => m.WasteComponent),
   },
   {
+    path: 'meals',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./meals/meals.component').then((m) => m.MealsComponent),
+  },
+  {
     path: 'meeting',
     canActivate: [authGuard],
     loadComponent: () =>

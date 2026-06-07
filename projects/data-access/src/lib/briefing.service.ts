@@ -20,6 +20,7 @@ export interface BriefingContent {
   right_now: string[];
   heads_up: string[];
   positive_reinforcement?: string;
+  meal_recap?: string;
 }
 
 export interface Briefing {
@@ -168,6 +169,7 @@ function normalize(raw: unknown): BriefingContent {
     right_now: c.right_now ?? [],
     heads_up: c.heads_up ?? [],
     positive_reinforcement: c.positive_reinforcement,
+    meal_recap: c.meal_recap,
   };
 }
 

@@ -16,6 +16,7 @@
     <a href="#meetings">Weekly meeting</a>
     <a href="#recipes">Recipes</a>
     <a href="#inventory">Inventory & waste</a>
+    <a href="#meals">Meals</a>
     <a href="#household">Household memory</a>
     <a href="#settings">Settings</a>
   </nav>
@@ -171,6 +172,29 @@
       Reasons: spoiled, disliked, leftover not eaten, accident, not worth
       dealing with, other. The 7-day waste total shows at the top of the
       Waste page.
+    </p>
+    <p>
+      <strong>Checking off groceries auto-updates inventory.</strong> When
+      you tick an item off the grocery list, HARSH runs it through the
+      inventory resolution ladder and, if it matches an item you'd
+      previously marked out, flips it back in stock automatically.
+    </p>
+  </article>
+
+  <article id="meals">
+    <h2>Meals</h2>
+    <p>
+      <a routerLink="/meals">/meals</a> is the running log of every meal
+      logged through "I made this" on a recipe, voice on the display ("I
+      made lasagna"), or the manual form on the Meals page itself.
+      Shows the week-by-week breakdown of how much you cooked, how much
+      it cost, and how much got thrown out.
+    </p>
+    <p>
+      <strong>Weekly + monthly briefings now include a Meals recap.</strong>
+      Number of meals cooked, total cost, and amount wasted — one line,
+      grounded in the meal_events + waste_events of the previous 7 / 30
+      days.
     </p>
   </article>
 

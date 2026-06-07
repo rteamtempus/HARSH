@@ -1,0 +1,135 @@
+<main class="wrap">
+  <harsh-header />
+  <h1 class="page-title">Meals</h1>
+  <p class="lede">
+    Every meal logged from the recipe page or from voice ("I made lasagna").
+    Tracks what was cooked, what cost, and how much got thrown out.
+  </p>
+
+  @if (loadError(); as e) { <p class="error">{{ e }}</p> }
+
+  <!-- This-week summary -->
+  <section class="recap">
+    <div class="recap-stat">
+      <span class="label">This week</span>
+      <strong>{{ thisWeekMeals().length }} cooked</strong>
+    </div>
+    <div class="recap-stat">
+      <span class="label">Total cost</span>
+      <strong>{{ formatDollars(thisWeekCost()) }}</strong>
+    </div>
+    <div class="recap-stat" [class.warn]="thisWeekWasted() > 0">
+      <span class="label">Wasted</span>
+      <strong>{{ formatDollars(thisWeekWasted()) }}</strong>
+    </div>
+  </section>
+
+  <!-- Manual add -->
+  <section class="add-section">
+    @if (!adding()) {
+      <button class="add-btn" (click)="startAdd()">+ Log a meal</button>
+    } @else {
+      <form class="editor" (submit)="$event.preventDefault(); saveAdd()">
+        <h3>Log a meal</h3>
+        <label>
+          Recipe (optional)
+          <select (change)="pickRecipe($event)">
+            <option value="">— free text below —</option>
+            @for (r of recipes.recipes(); track r.id) {
+              <option [value]="r.id">{{ r.title }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Name
+          <input type="text" [(ngModel)]="draft.recipeName" name="name" placeholder="What did you make?" required />
+        </label>
+        <div class="row">
+          <label>
+            Servings made
+            <input type="number" min="0" step="1" [(ngModel)]="draft.servingsMade" name="made" />
+          </label>
+          <label>
+            Servings eaten
+            <input type="number" min="0" step="1" [(ngModel)]="draft.servingsEaten" name="eaten" placeholder="leave blank if not done" />
+          </label>
+          <label>
+            Total cost
+            <input type="number" min="0" step="0.01" [(ngModel)]="draft.costDollars" name="cost" placeholder="$" />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="button" class="ghost" (click)="cancelAdd()">Cancel</button>
+          <button type="submit" class="primary" [disabled]="busy()">
+            @if (busy()) { Saving… } @else { Save }
+          </button>
+        </div>
+      </form>
+    }
+  </section>
+
+  @if (meals.recent().length === 0) {
+    <p class="empty">No meals logged yet. Cook something and tap "I made this" on the recipe page.</p>
+  } @else {
+    @for (week of weeks(); track week.start.getTime()) {
+      <section class="week">
+        <header class="week-head">
+          <h2>{{ week.label }}</h2>
+          <div class="week-stats">
+            <span>{{ week.cookedCount }} cooked</span>
+            <span>· {{ formatDollars(week.totalCostCents) }}</span>
+            @if (week.totalWastedCents > 0) {
+              <span class="warn">· {{ formatDollars(week.totalWastedCents) }} wasted</span>
+            }
+          </div>
+        </header>
+
+        <ul class="meals">
+          @for (m of week.meals; track m.id) {
+            <li class="meal">
+              @if (editingId() === m.id) {
+                <div class="meal-edit">
+                  <input type="text" [(ngModel)]="editDraft.recipeName" placeholder="name" />
+                  <div class="row">
+                    <label>Made <input type="number" min="0" step="1" [(ngModel)]="editDraft.servingsMade" /></label>
+                    <label>Eaten <input type="number" min="0" step="1" [(ngModel)]="editDraft.servingsEaten" /></label>
+                    <label>Cost <input type="number" min="0" step="0.01" [(ngModel)]="editDraft.costDollars" /></label>
+                  </div>
+                  <div class="actions">
+                    <button type="button" class="ghost" (click)="cancelEdit()">Cancel</button>
+                    <button type="button" class="primary" (click)="saveEdit(m)" [disabled]="busy()">Save</button>
+                  </div>
+                </div>
+              } @else {
+                <div class="meal-main">
+                  <div>
+                    <strong>{{ m.recipe_name_snapshot }}</strong>
+                    <span class="meal-meta">{{ m.occurred_at | date:'short' }}</span>
+                  </div>
+                  <div class="meal-numbers">
+                    @if (m.servings_made != null) {
+                      <span>{{ m.servings_eaten ?? '?' }}/{{ m.servings_made }} eaten</span>
+                    }
+                    @if (m.estimated_total_cost_cents != null) {
+                      <span>{{ formatDollars(m.estimated_total_cost_cents) }}@if (costPerServing(m); as c) { · {{ c }}/serving }</span>
+                    }
+                    @if (m.servings_wasted && m.servings_wasted > 0) {
+                      <span class="warn">{{ m.servings_wasted }} wasted ({{ formatDollars(m.estimated_value_wasted_cents) }})</span>
+                    }
+                  </div>
+                </div>
+                <div class="meal-actions">
+                  @if (m.servings_eaten == null) {
+                    <button class="link" (click)="logDiscardFor(m)">Close out</button>
+                  }
+                  <button class="link" (click)="startEdit(m)">Edit</button>
+                  <button class="link danger" (click)="remove(m)">Delete</button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</main>

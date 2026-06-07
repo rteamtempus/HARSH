@@ -40,6 +40,13 @@
           </ul>
         </section>
       }
+
+      @if (b.content.meal_recap) {
+        <section class="meal-recap">
+          <h3>Meals this {{ b.type === 'monthly' ? 'month' : 'week' }}</h3>
+          <p>{{ b.content.meal_recap }}</p>
+        </section>
+      }
     </div>
 
     <footer class="meta">Updated {{ b.generated_at | date:'shortTime' }}</footer>

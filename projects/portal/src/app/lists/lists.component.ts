@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import {
   AuthService,
   FamilyService,
+  InventoryService,
   ListItemRow,
   ListService,
 } from 'data-access';
@@ -25,6 +26,7 @@ export class ListsComponent implements OnInit, OnDestroy {
   protected readonly auth = inject(AuthService);
   protected readonly family = inject(FamilyService);
   protected readonly lists = inject(ListService);
+  private readonly inventory = inject(InventoryService);
   private readonly router = inject(Router);
 
   draft = '';
@@ -46,6 +48,8 @@ export class ListsComponent implements OnInit, OnDestroy {
       const fam = this.family.family() ?? (await this.family.loadCurrent());
       if (!fam) { await this.router.navigateByUrl('/setup'); return; }
       const lists = await this.lists.loadLists(fam.id);
+      // Load inventory so checking a grocery item can autoroute to in-stock.
+      this.inventory.load(fam.id).catch(() => { /* non-fatal */ });
       if (lists[0]) await this.selectList(lists[0].id);
     } catch (e: any) {
       this.error.set(e?.message ?? 'Could not load lists');

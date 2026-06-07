@@ -69,6 +69,10 @@ const BRIEFING_SCHEMA = {
       type: 'string',
       description: 'Weekly/monthly only — meaningful, earned, infrequent. Omit for daily.',
     },
+    meal_recap: {
+      type: 'string',
+      description: 'Weekly/monthly only. ONE short line summarizing meals cooked, total cost, and waste, e.g. "Cooked 6 meals (~$84). About $11 went in the bin." Omit for daily.',
+    },
   },
   required: ['hero', 'today_shape', 'needs_attention', 'right_now', 'heads_up'],
 };
@@ -107,6 +111,7 @@ Weekly briefing:
 - right_now: focus suggestion or empty.
 - heads_up: next-week peek.
 - positive_reinforcement: ONLY if specifically earned this past week.
+- meal_recap: ONE line summarizing meals_cooked, total_cost_cents, and total_wasted_cents from the inputs (when meal_recap input is present). State waste only if non-trivial — under $2 isn't worth mentioning. Sample tone: "Cooked 6 meals (~$84). About $11 went in the bin." Skip the line entirely if no meals were logged.
 
 Monthly briefing:
 - hero: month-at-a-glance.
@@ -114,7 +119,8 @@ Monthly briefing:
 - needs_attention: recurring obligations.
 - right_now: empty or one strategic suggestion.
 - heads_up: longer horizon items.
-- positive_reinforcement: looking-back summary if warranted.`;
+- positive_reinforcement: looking-back summary if warranted.
+- meal_recap: monthly version of the same recap line.`;
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -147,7 +153,12 @@ Deno.serve(async (req: Request) => {
   const monthlyHorizon = new Date(now.getTime() + 35 * 24 * 3600 * 1000).toISOString();
   const horizon = type === 'monthly' ? monthlyHorizon : type === 'weekly' ? weeklyHorizon : dailyHorizon;
 
-  const [familyRes, eventsRes, routinesRes, factsRes, notesRes, deadlinesRes] = await Promise.all([
+  // Recap window: 7 days for weekly, 30 days for monthly. We compute the recap
+  // server-side so the model only formats the line — keeps the numbers exact.
+  const recapDays = type === 'monthly' ? 30 : 7;
+  const recapStart = new Date(now.getTime() - recapDays * 24 * 3600 * 1000).toISOString();
+
+  const [familyRes, eventsRes, routinesRes, factsRes, notesRes, deadlinesRes, mealsRes, wasteRes] = await Promise.all([
     userClient.from('families').select('*').eq('id', body.family_id).single(),
     userClient.from('events').select('*').eq('family_id', body.family_id)
       .gte('starts_at', horizonStart).lte('starts_at', horizon)
@@ -160,6 +171,13 @@ Deno.serve(async (req: Request) => {
     userClient.from('list_items_with_act_by').select('*').eq('family_id', body.family_id)
       .eq('checked', false).not('deadline', 'is', null).lte('deadline', horizon)
       .order('deadline', { ascending: true }),
+    // Recap inputs for weekly / monthly. Daily fetches them but ignores below.
+    userClient.from('meal_events').select('*')
+      .eq('family_id', body.family_id)
+      .gte('occurred_at', recapStart),
+    userClient.from('waste_events').select('*')
+      .eq('family_id', body.family_id)
+      .gte('occurred_at', recapStart),
   ]);
 
   if (familyRes.error) return json({ error: `family_read:${familyRes.error.message}` }, 500);
@@ -171,6 +189,21 @@ Deno.serve(async (req: Request) => {
   const facts = factsRes.data ?? [];
   const notes = notesRes.data ?? [];
   const deadlines = deadlinesRes.data ?? [];
+  const mealsRecent = mealsRes.data ?? [];
+  const wasteRecent = wasteRes.data ?? [];
+
+  // Build the recap numbers. Total cost = sum of estimated_total_cost_cents;
+  // total wasted = waste_events.estimated_value_cents PLUS meal_events
+  // estimated_value_wasted_cents (the stored generated column). These don't
+  // double-count because the meal-derived waste isn't logged into waste_events.
+  const mealsCookedCount = mealsRecent.length;
+  const totalCostCents = mealsRecent.reduce(
+    (s: number, m: any) => s + (m.estimated_total_cost_cents ?? 0), 0,
+  );
+  const totalWastedCents =
+    wasteRecent.reduce((s: number, w: any) => s + (w.estimated_value_cents ?? 0), 0)
+    + mealsRecent.reduce((s: number, m: any) => s + (m.estimated_value_wasted_cents ?? 0), 0);
+  const wasteEventCount = wasteRecent.length;
 
   // Quiet hours: when active, briefing should de-emphasize non-assertive items.
   const qh = (family.settings?.quiet_hours ?? {}) as { start?: string; end?: string };
@@ -229,6 +262,15 @@ Deno.serve(async (req: Request) => {
     household_facts: facts.map((f: any) => ({ key: f.key, value: f.value, category: f.category })),
     tone_hints: toneHints,
     suppression_topics: suppressionTopics,
+    ...(type === 'daily' ? {} : {
+      meal_recap: {
+        window_days: recapDays,
+        meals_cooked: mealsCookedCount,
+        total_cost_cents: totalCostCents,
+        total_wasted_cents: totalWastedCents,
+        waste_events: wasteEventCount,
+      },
+    }),
   };
 
   const prompt = [
@@ -378,6 +420,7 @@ function renderSpoken(c: any, type: string): string {
   if (c.needs_attention?.length) parts.push('Needs attention: ' + c.needs_attention.join('. ') + '.');
   if (c.right_now?.length) parts.push(c.right_now.join('. '));
   if (c.heads_up?.length) parts.push('Heads up: ' + c.heads_up.join('. ') + '.');
+  if (type !== 'daily' && c.meal_recap) parts.push(c.meal_recap);
   if (type !== 'daily' && c.positive_reinforcement) parts.push(c.positive_reinforcement);
   return parts.filter(Boolean).join(' ');
 }
