@@ -2,17 +2,22 @@ import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, effect
 import { Router } from '@angular/router';
 import {
   AiService,
+  BrainDumpContext,
+  BrainDumpService,
   BriefingService,
   CalendarAccountRow,
   CalendarService,
+  ContextNotesService,
   EventRow,
   EventService,
   FamilyService,
+  HouseholdFactsService,
   InventoryService,
   ListItemRow,
   ListRow,
   ListService,
   MealService,
+  ProfileService,
   RecipeService,
   RoutineOccurrence,
   RoutineService,
@@ -60,6 +65,10 @@ export class BoardComponent implements OnInit, OnDestroy {
   private readonly waste = inject(WasteService);
   private readonly meals = inject(MealService);
   private readonly recipeService = inject(RecipeService);
+  private readonly facts = inject(HouseholdFactsService);
+  private readonly contextNotes = inject(ContextNotesService);
+  private readonly profiles = inject(ProfileService);
+  private readonly brainDump = inject(BrainDumpService);
   private readonly router = inject(Router);
 
   readonly now = signal('');
@@ -160,6 +169,10 @@ export class BoardComponent implements OnInit, OnDestroy {
         this.waste.load(fam.id).catch((e) => console.warn('waste load failed', e)),
         this.meals.load(fam.id).catch((e) => console.warn('meals load failed', e)),
         this.recipeService.load(fam.id).catch((e) => console.warn('recipes load failed', e)),
+        // Loaded so the free-form Q&A path has facts / context to ground on.
+        this.facts.load(fam.id).catch((e) => console.warn('facts load failed', e)),
+        this.contextNotes.load(fam.id).catch((e) => console.warn('context notes load failed', e)),
+        this.profiles.load(fam.id).catch((e) => console.warn('profiles load failed', e)),
       ]);
       this.accountById.set(new Map(accounts.map((a) => [a.id, a])));
       const todo = lists.find((l) => l.kind === 'todo') ?? lists[0];
@@ -183,6 +196,9 @@ export class BoardComponent implements OnInit, OnDestroy {
     this.waste.unsubscribe();
     this.meals.unsubscribe();
     this.recipeService.unsubscribe();
+    this.facts.unsubscribe();
+    this.contextNotes.unsubscribe();
+    this.profiles.unsubscribe();
     document.removeEventListener('fullscreenchange', this.fsListener);
   }
 
@@ -217,6 +233,17 @@ export class BoardComponent implements OnInit, OnDestroy {
     this.showHeard(transcript);
     try {
       const res = await this.ai.runIntent({ transcript, family_id: fam.id, surface: 'display' });
+
+      // Fallback: if ai-intent couldn't classify any intent confidently, hand
+      // the transcript to the shared Q&A primitive so the display can answer
+      // "what's on the grocery list?" / "when's the dentist?" naturally.
+      const allUnknown = res.intents.length === 0
+        || res.intents.every((i) => i.action === 'unknown');
+      if (allUnknown) {
+        const answered = await this.askFreeForm(transcript, fam.id);
+        if (answered) return;
+      }
+
       let overrideReply: string | null = null;
       for (const intent of res.intents) {
         if (intent.action === 'view.show_list' && intent.resolved_list_id) {
@@ -255,6 +282,59 @@ export class BoardComponent implements OnInit, OnDestroy {
   }
 
   // ===== Voice intent handlers =====
+
+  /**
+   * Free-form Q&A. Routes through the shared BrainDumpService.ask() primitive
+   * so the display answers questions the same way the portal home page does.
+   * Returns true if it produced a reply (regardless of mode).
+   */
+  private async askFreeForm(transcript: string, familyId: string): Promise<boolean> {
+    try {
+      const ctx: BrainDumpContext = {
+        familyId,
+        familyName: this.family.family()?.name,
+        timezone: this.family.timeZone(),
+        memberId: this.family.me()?.id ?? null,
+        lists: this.lists.lists().map((l) => ({ id: l.id, name: l.name })),
+        members: this.family.members().map((m) => ({ id: m.id, display_name: m.display_name })),
+        profiles: this.profiles.profiles().map((p) => ({ id: p.id, name: p.name, kind: p.kind })),
+        snapshot: {
+          items: this.lists.items().map((it) => ({
+            list_name: this.lists.lists().find((l) => l.id === it.list_id)?.name ?? '',
+            text: it.text, checked: it.checked,
+          })),
+          upcomingEvents: this.events.events().slice(0, 20).map((e) => ({
+            title: e.title, starts_at: e.starts_at, location: e.location,
+          })),
+          facts: this.facts.facts().map((f) => ({
+            key: f.key, value: f.value, category: f.category,
+          })),
+          contextNotes: this.contextNotes.notes().map((n) => ({
+            content: n.content, note_type: n.type, expires_at: n.expires_at,
+          })),
+          routines: this.routines.routines().map((r) => ({
+            name: r.name, next_due: r.next_due,
+            cadence: r.cadence_type === 'interval'
+              ? `every ${r.interval_days} days`
+              : r.cadence_rrule ?? '',
+          })),
+          recipes: this.recipeService.recipes().map((r) => ({ title: r.title })),
+          inventory: this.inventory.activeItems().map((i) => ({
+            name: i.name, in_stock: i.in_stock,
+            category: this.inventory.categories().find((c) => c.id === i.category_id)?.name ?? 'Misc',
+          })),
+        },
+      };
+      const answer = await this.brainDump.ask(transcript, ctx);
+      const reply = answer.reply || `I couldn't find anything about that.`;
+      this.showReply(reply);
+      this.voice.speak(reply);
+      return true;
+    } catch (e) {
+      console.warn('ask fallback failed', e);
+      return false;
+    }
+  }
 
   /**
    * "We're out of soy sauce" — resolve via D2 ladder, mark item out of stock,

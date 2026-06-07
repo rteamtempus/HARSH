@@ -29,6 +29,22 @@
           @else { 🎤 Speak }
         </button>
       }
+      <label
+        class="photo-btn"
+        [class.disabled]="stage() === 'parsing' || stage() === 'committing'"
+        [attr.aria-label]="'Capture from a photo'"
+        title="Snap or upload a handwritten note, appointment card, school flier…"
+      >
+        📷 Photo
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          (change)="onPhotoPicked($event)"
+          [disabled]="stage() === 'parsing' || stage() === 'committing'"
+          hidden
+        />
+      </label>
       <button
         type="button"
         class="submit"

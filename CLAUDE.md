@@ -123,7 +123,8 @@ High-level snapshot (2026-05-24):
 
 | Date | Summary | Ref |
 |---|---|---|
-| 2026-06-07 | /meals page, weekly meal+waste recap in briefings, grocery→inventory autoroute on check | (this commit) |
+| 2026-06-07 | Brain dump v2: photo capture, inventory_restock + meal_cooked types, richer Q&A snapshot, shared ask() on the display | (this commit) |
+| 2026-06-07 | /meals page, weekly meal+waste recap in briefings, grocery→inventory autoroute on check | |
 | 2026-06-06 | Voice intents for inventory/waste/meals on display + cook/discard UI in recipe lightbox | |
 | 2026-05-24 | Add CLAUDE.md + PROGRESS.md handoff scaffolding | |
 | earlier | Initial Angular workspace + Supabase schema + ai-intent function | `143841e` |

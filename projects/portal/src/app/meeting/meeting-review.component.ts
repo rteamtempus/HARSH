@@ -26,6 +26,8 @@ const TYPE_LABELS: Record<BrainDumpItem['type'], string> = {
   household_fact: 'Household facts',
   context_note: 'Context notes',
   waste_event: 'Waste',
+  inventory_restock: 'Inventory restocks',
+  meal_cooked: 'Meals',
 };
 
 const STATUS_LABELS: Record<MeetingStatus, string> = {

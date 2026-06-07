@@ -44,6 +44,8 @@ interface RequestBody {
   maxOutputTokens?: number;
   intentLabel?: string;
   family_id?: string;
+  /** Inline images for Vision input. Base64-encoded payloads. */
+  images?: Array<{ mime_type: string; data: string }>;
 }
 
 Deno.serve(async (req: Request) => {
@@ -75,8 +77,15 @@ Deno.serve(async (req: Request) => {
     generationConfig.responseSchema = body.schema;
   }
 
+  const parts: Array<Record<string, unknown>> = [{ text: body.prompt }];
+  if (body.images?.length) {
+    for (const img of body.images) {
+      if (!img?.data || !img?.mime_type) continue;
+      parts.push({ inline_data: { mime_type: img.mime_type, data: img.data } });
+    }
+  }
   const geminiBody: Record<string, unknown> = {
-    contents: [{ role: 'user', parts: [{ text: body.prompt }] }],
+    contents: [{ role: 'user', parts }],
     generationConfig,
   };
   if (body.system) {

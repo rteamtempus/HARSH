@@ -21,8 +21,10 @@ import {
   EventService,
   FamilyService,
   HouseholdFactsService,
+  InventoryService,
   ListService,
   ProfileService,
+  RecipeService,
   RoutineService,
   ThemeService,
   VoiceService,
@@ -55,6 +57,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly profiles = inject(ProfileService);
   private readonly facts = inject(HouseholdFactsService);
   private readonly contextNotes = inject(ContextNotesService);
+  private readonly inventory = inject(InventoryService);
+  private readonly recipes = inject(RecipeService);
   private readonly brainDump = inject(BrainDumpService);
   private readonly router = inject(Router);
 
@@ -89,9 +93,18 @@ export class HomeComponent implements OnInit, OnDestroy {
     try {
       const fam = this.family.family() ?? (await this.family.loadCurrent());
       if (!fam) { await this.router.navigateByUrl('/setup'); return; }
+      // Best-effort hydration so query mode and image dumps have a rich
+      // snapshot. Failures are non-fatal — the user can still capture.
       await Promise.all([
         this.lists.loadLists(fam.id),
         this.profiles.load(fam.id),
+        this.events.load(fam.id, { from: new Date(), to: addDays(new Date(), 21) })
+          .catch(() => { /* non-fatal */ }),
+        this.facts.load(fam.id).catch(() => { /* non-fatal */ }),
+        this.contextNotes.load(fam.id).catch(() => { /* non-fatal */ }),
+        this.routines.load(fam.id).catch(() => { /* non-fatal */ }),
+        this.inventory.load(fam.id).catch(() => { /* non-fatal */ }),
+        this.recipes.load(fam.id).catch(() => { /* non-fatal */ }),
       ]);
     } catch (e: any) {
       this.error.set(e?.message ?? 'Could not load household');
@@ -136,15 +149,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         lists: this.lists.lists().map((l) => ({ id: l.id, name: l.name })),
         members: this.family.members().map((m) => ({ id: m.id, display_name: m.display_name })),
         profiles: this.profiles.profiles().map((p) => ({ id: p.id, name: p.name, kind: p.kind })),
-        snapshot: {
-          items: this.lists
-            .items()
-            .map((it) => ({
-              list_name: this.lists.lists().find((l) => l.id === it.list_id)?.name ?? '',
-              text: it.text,
-              checked: it.checked,
-            })),
-        },
+        snapshot: this.buildSnapshot(),
         prior: this.prior ?? undefined,
       };
 
@@ -221,6 +226,80 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.stage.set('idle');
   }
 
+  /** Build the shared snapshot consumed by parse / parseImage / ask. */
+  private buildSnapshot(): BrainDumpContext['snapshot'] {
+    const inv = this.inventory.activeItems().map((i) => ({
+      name: i.name,
+      in_stock: i.in_stock,
+      category: this.inventory.categories().find((c) => c.id === i.category_id)?.name ?? 'Misc',
+    }));
+    return {
+      items: this.lists.items().map((it) => ({
+        list_name: this.lists.lists().find((l) => l.id === it.list_id)?.name ?? '',
+        text: it.text,
+        checked: it.checked,
+      })),
+      upcomingEvents: this.events.events().slice(0, 20).map((e) => ({
+        title: e.title, starts_at: e.starts_at, location: e.location,
+      })),
+      facts: this.facts.facts().map((f) => ({
+        key: f.key, value: f.value, category: f.category,
+      })),
+      contextNotes: this.contextNotes.notes().map((n) => ({
+        content: n.content, note_type: n.type, expires_at: n.expires_at,
+      })),
+      routines: this.routines.routines().map((r) => ({
+        name: r.name,
+        next_due: r.next_due,
+        cadence: r.cadence_type === 'interval'
+          ? `every ${r.interval_days} days`
+          : r.cadence_rrule ?? '',
+      })),
+      recipes: this.recipes.recipes().map((r) => ({ title: r.title })),
+      inventory: inv,
+    };
+  }
+
+  /** Photo button — opens camera/file picker, then runs vision brain dump. */
+  async onPhotoPicked(ev: Event): Promise<void> {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    const fam = this.family.family();
+    if (!fam) return;
+    this.error.set(null);
+    this.lastSummary.set(null);
+    this.stage.set('parsing');
+    try {
+      const base64Data = await fileToBase64(file);
+      const ctx: BrainDumpContext = {
+        familyId: fam.id,
+        familyName: fam.name,
+        timezone: (fam as any).timezone ?? undefined,
+        memberId: this.family.me()?.id ?? null,
+        lists: this.lists.lists().map((l) => ({ id: l.id, name: l.name })),
+        members: this.family.members().map((m) => ({ id: m.id, display_name: m.display_name })),
+        profiles: this.profiles.profiles().map((p) => ({ id: p.id, name: p.name, kind: p.kind })),
+        snapshot: this.buildSnapshot(),
+      };
+      const caption = this.draft.trim() || undefined;
+      const parsed = await this.brainDump.parseImage(
+        [{ mimeType: file.type || 'image/jpeg', base64Data }],
+        ctx,
+        caption,
+      );
+      this.result.set(parsed);
+      this.skipped.set(new Set());
+      this.draft = '';
+      this.stage.set(parsed.mode === 'capture' ? 'review' : 'idle');
+      queueMicrotask(() => this.dumpInput()?.nativeElement.focus());
+    } catch (e: any) {
+      this.error.set(e?.message ?? 'Could not read the image');
+      this.stage.set('idle');
+    }
+  }
+
   async signOut() {
     this.menuOpen.set(false);
     this.lists.unsubscribe();
@@ -228,4 +307,25 @@ export class HomeComponent implements OnInit, OnDestroy {
     await this.auth.signOut();
     await this.router.navigateByUrl('/sign-in');
   }
+}
+
+function addDays(d: Date, days: number): Date {
+  const x = new Date(d);
+  x.setDate(x.getDate() + days);
+  return x;
+}
+
+/** Read a File as raw base64 (no `data:` prefix), for Gemini inline_data. */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== 'string') { reject(new Error('Read failed')); return; }
+      const comma = result.indexOf(',');
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Read failed'));
+    reader.readAsDataURL(file);
+  });
 }

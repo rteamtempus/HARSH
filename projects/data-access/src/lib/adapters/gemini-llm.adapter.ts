@@ -39,6 +39,7 @@ export class GeminiLlmAdapter implements LlmAdapter {
         schema: options.schema,
         maxOutputTokens: options.maxOutputTokens,
         intentLabel: options.intentLabel,
+        images: mapImages(options.images),
       },
     });
     if (error) throw error;
@@ -57,10 +58,16 @@ export class GeminiLlmAdapter implements LlmAdapter {
         tier: options.tier ?? 'fast',
         maxOutputTokens: options.maxOutputTokens,
         intentLabel: options.intentLabel,
+        images: mapImages(options.images),
       },
     });
     if (error) throw error;
     if (!data) throw new Error('empty llm response');
     return data;
   }
+}
+
+function mapImages(images: LlmCallOptions['images']) {
+  if (!images?.length) return undefined;
+  return images.map((i) => ({ mime_type: i.mimeType, data: i.base64Data }));
 }

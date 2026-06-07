@@ -23,6 +23,8 @@ import { HouseholdFactsService } from './household-facts.service';
 import { ContextNotesService } from './context-notes.service';
 import { InventoryService } from './inventory.service';
 import { WasteService } from './waste.service';
+import { MealService } from './meal.service';
+import { RecipeService } from './recipe.service';
 
 // ===== Domain types =====
 
@@ -81,6 +83,20 @@ export type BrainDumpItem =
       quantity_text?: string;              // "half a loaf", "two slices"
       estimated_value_cents?: number;      // when set, used as the value
       reasoning?: string;
+    }
+  | {
+      type: 'inventory_restock';
+      name: string;                        // matched via resolveForVoice
+      count?: number;                      // for count-tracked items; otherwise just flips in_stock=true
+      reasoning?: string;
+    }
+  | {
+      type: 'meal_cooked';
+      recipe_name: string;                 // best-match against an existing recipe; otherwise free-text
+      servings_made?: number;
+      estimated_total_cost_cents?: number;
+      notes?: string;
+      reasoning?: string;
     };
 
 export interface BrainDumpResult {
@@ -100,8 +116,12 @@ export interface BrainDumpContext {
   /** Optional snapshot used for query mode. */
   snapshot?: {
     items?: { list_name: string; text: string; checked: boolean }[];
-    upcomingEvents?: { title: string; starts_at: string }[];
-    facts?: { key: string; value: string }[];
+    upcomingEvents?: { title: string; starts_at: string; location?: string | null }[];
+    facts?: { key: string; value: string; category?: string | null }[];
+    contextNotes?: { content: string; note_type: string; expires_at: string }[];
+    routines?: { name: string; next_due?: string | null; cadence?: string }[];
+    recipes?: { title: string }[];
+    inventory?: { category: string; name: string; in_stock: boolean }[];
   };
   /** Optional prior turn for multi-turn. */
   prior?: { transcript: string; reply: string };
@@ -129,13 +149,17 @@ const ITEM_SCHEMA = {
   properties: {
     type: {
       type: 'string',
-      enum: ['list_item', 'event', 'routine', 'household_fact', 'context_note', 'waste_event'],
+      enum: [
+        'list_item', 'event', 'routine', 'household_fact', 'context_note',
+        'waste_event', 'inventory_restock', 'meal_cooked',
+      ],
     },
     label: {
       type: 'string',
       description:
         'The primary text. ALWAYS fill this. list_item: the item text. event: the title. ' +
-        'routine: the routine name. household_fact: the fact key/name. context_note: the note content.',
+        'routine: the routine name. household_fact: the fact key/name. context_note: the note content. ' +
+        'waste_event: the thing wasted. inventory_restock: the item name. meal_cooked: the recipe / meal name.',
     },
     value: { type: 'string', description: 'household_fact only: the fact value.' },
     list_name: { type: 'string', description: 'list_item only: best-match existing list, or a new list name.' },
@@ -173,13 +197,27 @@ const ITEM_SCHEMA = {
       type: 'integer',
       description: 'waste_event only: when known. Otherwise leave blank and the executor estimates.',
     },
+    count: {
+      type: 'integer',
+      description: 'inventory_restock only: explicit count when the user gave one ("we got 3 cans of beans").',
+    },
+    servings_made: {
+      type: 'integer',
+      description: 'meal_cooked only: number of servings prepared.',
+    },
+    estimated_total_cost_cents: {
+      type: 'integer',
+      description: 'meal_cooked only: when the user states a cost. Otherwise leave blank and the executor falls back to the recipe snapshot.',
+    },
     reasoning: { type: 'string', description: 'Short quote from the dump that prompted this item' },
   },
   required: ['type', 'label'],
   propertyOrdering: [
     'type', 'label', 'value', 'list_name', 'starts_at', 'ends_at', 'all_day',
     'location', 'category', 'cadence_type', 'interval_days', 'cadence_rrule',
-    'note_type', 'expires_at', 'suppress_topics', 'deadline', 'notes', 'reasoning',
+    'note_type', 'expires_at', 'suppress_topics', 'reason', 'percentage_wasted',
+    'quantity_text', 'estimated_value_cents', 'count', 'servings_made',
+    'estimated_total_cost_cents', 'deadline', 'notes', 'reasoning',
   ],
 };
 
@@ -220,6 +258,22 @@ export function normalizeWireItem(raw: any): BrainDumpItem | null {
         estimated_value_cents: raw.estimated_value_cents,
         reasoning,
       };
+    case 'inventory_restock':
+      return {
+        type: 'inventory_restock',
+        name: label,
+        count: raw.count,
+        reasoning,
+      };
+    case 'meal_cooked':
+      return {
+        type: 'meal_cooked',
+        recipe_name: label,
+        servings_made: raw.servings_made,
+        estimated_total_cost_cents: raw.estimated_total_cost_cents,
+        notes: raw.notes,
+        reasoning,
+      };
     default:
       return null;
   }
@@ -251,8 +305,43 @@ export class BrainDumpService {
   private readonly contextNotes = inject(ContextNotesService);
   private readonly inventory = inject(InventoryService);
   private readonly waste = inject(WasteService);
+  private readonly meals = inject(MealService);
+  private readonly recipes = inject(RecipeService);
+
+  /**
+   * Vision-mode brain dump. Caller supplies one or more images (handwritten
+   * note, appointment card, school flier, prescription, etc.) and an optional
+   * caption. Same return shape as parse().
+   */
+  async parseImage(
+    images: Array<{ mimeType: string; base64Data: string }>,
+    ctx: BrainDumpContext,
+    caption?: string,
+  ): Promise<BrainDumpResult> {
+    const transcript = caption?.trim()
+      ? `[Photo capture] ${caption.trim()}`
+      : '[Photo capture] Extract everything actionable from the attached image. The image is from a household member; treat the writing as if they had spoken it.';
+    return this.parseInternal(transcript, ctx, { images });
+  }
+
+  /**
+   * Free-form Q&A about the household. Same primitive used on both the portal
+   * brain dump and the display voice path. Returns mode='query' with the
+   * answer in `reply`. Caller supplies the snapshot.
+   */
+  async ask(question: string, ctx: BrainDumpContext): Promise<BrainDumpResult> {
+    return this.parseInternal(`(treat as a question) ${question}`, ctx);
+  }
 
   async parse(transcript: string, ctx: BrainDumpContext): Promise<BrainDumpResult> {
+    return this.parseInternal(transcript, ctx);
+  }
+
+  private async parseInternal(
+    transcript: string,
+    ctx: BrainDumpContext,
+    opts: { images?: Array<{ mimeType: string; base64Data: string }> } = {},
+  ): Promise<BrainDumpResult> {
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
     const tz = ctx.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -283,9 +372,19 @@ export class BrainDumpService {
       '  reason: spoiled / disliked / leftover_not_eaten / accident / not_worth_it / other (pick the closest fit).',
       '  percentage_wasted: 0-100. Default 100. Use lower when user says "half-used", "almost empty", etc.',
       '  Do NOT confuse this with list_items — "we need bread" is a list_item, "we threw out the moldy bread" is a waste_event.',
+      '- inventory_restock: when the user says they just bought, restocked, or replaced something the household tracks ("we just got bread", "I picked up milk").',
+      '  label = the item name. Optional count when explicit.',
+      '  Do NOT use this when the user is asking ABOUT inventory — that\'s a query.',
+      '- meal_cooked: when the user says they just cooked or served a meal ("I made lasagna", "we had spaghetti for dinner").',
+      '  label = the recipe / meal name. servings_made when stated.',
       '',
       'Never extract emotional-processing chatter, jokes, or filler as actionable items.',
       'For each extracted item, set "reasoning" to a short quote from the user that prompted the item.',
+      '',
+      'For query mode, the snapshot may include lists, events, facts, context notes, routines, recipes, and inventory.',
+      'Answer in ONE short sentence. If the snapshot is missing the data you need, say so plainly ("I don\'t see anything about that") rather than guessing.',
+      '',
+      'IMAGE INPUTS: when the user attaches a photo (handwritten list, dentist reminder card, school notice, prescription label, etc.), treat what is written on the image as if the user spoke it — extract items the same way. If the image is a handwritten to-do list, each line is a candidate list_item. If it\'s an appointment card, it\'s an event. If multiple types appear, extract them all.',
     ].join('\n');
 
     const userParts: string[] = [
@@ -317,10 +416,37 @@ export class BrainDumpService {
       if (s.facts?.length) {
         userParts.push(
           `Household facts: ${s.facts
-            .slice(0, 30)
+            .slice(0, 40)
             .map((f) => `${f.key}=${f.value}`)
             .join('; ')}`,
         );
+      }
+      if (s.contextNotes?.length) {
+        userParts.push(
+          `Active context notes: ${s.contextNotes
+            .slice(0, 10)
+            .map((n) => `(${n.note_type}) ${n.content}`)
+            .join('; ')}`,
+        );
+      }
+      if (s.routines?.length) {
+        userParts.push(
+          `Routines: ${s.routines
+            .slice(0, 20)
+            .map((r) => `${r.name}${r.next_due ? ' (due ' + r.next_due.slice(0, 10) + ')' : ''}`)
+            .join('; ')}`,
+        );
+      }
+      if (s.recipes?.length) {
+        userParts.push(
+          `Recipes (titles only): ${s.recipes.slice(0, 30).map((r) => r.title).join('; ')}`,
+        );
+      }
+      if (s.inventory?.length) {
+        const out = s.inventory.filter((i) => !i.in_stock).slice(0, 30);
+        const stocked = s.inventory.filter((i) => i.in_stock).slice(0, 30);
+        if (out.length) userParts.push(`Inventory out: ${out.map((i) => `${i.name} (${i.category})`).join('; ')}`);
+        if (stocked.length) userParts.push(`Inventory in stock (sample): ${stocked.map((i) => i.name).join('; ')}`);
       }
     }
 
@@ -339,8 +465,9 @@ export class BrainDumpService {
       tier: 'fast',
       system,
       schema: RESPONSE_SCHEMA,
-      intentLabel: 'brain_dump',
+      intentLabel: opts.images?.length ? 'brain_dump_image' : 'brain_dump',
       maxOutputTokens: 2048,
+      images: opts.images,
     });
 
     const parsed = result.data;
@@ -455,6 +582,45 @@ export class BrainDumpService {
         });
         return;
       }
+      case 'inventory_restock': {
+        const resolution = this.inventory.resolveForVoice(item.name);
+        if (resolution.kind === 'item') {
+          if (item.count != null && resolution.item.tracks_count) {
+            await this.inventory.setCount(resolution.item, item.count, {
+              source: 'voice',
+              memberId: ctx.memberId ?? null,
+            });
+          } else {
+            await this.inventory.setInStock(resolution.item, true, {
+              source: 'voice',
+              memberId: ctx.memberId ?? null,
+            });
+          }
+        }
+        // Unmatched: silently no-op. We don't auto-create inventory rows here —
+        // brain dump shouldn't proliferate tracked items behind the user's back.
+        return;
+      }
+      case 'meal_cooked': {
+        const recipe = this.recipes.recipes().find(
+          (r) => r.title.toLowerCase() === item.recipe_name.toLowerCase(),
+        ) ?? this.recipes.recipes().find(
+          (r) => r.title.toLowerCase().includes(item.recipe_name.toLowerCase()),
+        ) ?? null;
+        await this.meals.logCooked({
+          familyId: ctx.familyId,
+          recipeId: recipe?.id ?? null,
+          recipeName: recipe?.title ?? item.recipe_name,
+          servingsMade: item.servings_made ?? recipe?.servings ?? null,
+          estimatedTotalCostCents: item.estimated_total_cost_cents
+            ?? recipe?.estimated_cost_cents
+            ?? null,
+          memberId: ctx.memberId ?? null,
+          source: 'brain_dump',
+          notes: item.notes ?? null,
+        });
+        return;
+      }
       case 'waste_event': {
         // Best-effort inventory match for cost. If unmatched and no LLM-
         // provided value, the row gets null estimated value — the report
@@ -515,6 +681,17 @@ export class BrainDumpService {
           : '';
         const pctTag = pct < 100 ? ` (${pct}%)` : '';
         return `Wasted: ${item.name}${pctTag} · ${item.reason.replace(/_/g, ' ')}${value}`;
+      }
+      case 'inventory_restock':
+        return item.count != null
+          ? `Restock: ${item.name} (${item.count})`
+          : `Restock: ${item.name} back in stock`;
+      case 'meal_cooked': {
+        const cost = item.estimated_total_cost_cents != null
+          ? ` (~$${(item.estimated_total_cost_cents / 100).toFixed(2)})`
+          : '';
+        const servings = item.servings_made != null ? ` · ${item.servings_made} servings` : '';
+        return `Cooked: ${item.recipe_name}${servings}${cost}`;
       }
     }
   }

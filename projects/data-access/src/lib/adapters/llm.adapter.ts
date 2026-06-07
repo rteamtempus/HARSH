@@ -18,6 +18,8 @@ export interface LlmCallOptions {
   maxOutputTokens?: number;
   /** Free-text label for ai_log debugging. */
   intentLabel?: string;
+  /** Inline images for Vision input. base64Data is raw base64 (no data: prefix). */
+  images?: Array<{ mimeType: string; base64Data: string }>;
 }
 
 export interface LlmStructuredResult<T> {

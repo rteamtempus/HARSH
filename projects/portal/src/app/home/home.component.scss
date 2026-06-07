@@ -19,7 +19,10 @@ h1 { margin:0; font-family:var(--font-display); font-size:var(--fs-h1); }
 .dump-input:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
 .dump-input:disabled { opacity:0.7; }
 .dump-actions { display:flex; gap:var(--s-2); margin-top:var(--s-3); }
-.mic, .submit { padding:var(--s-3) var(--s-5); font-size:var(--fs-body); font-weight:600; border-radius:var(--r-md); border:0; cursor:pointer; display:inline-flex; align-items:center; gap:var(--s-2); }
+.mic, .submit, .photo-btn { padding:var(--s-3) var(--s-5); font-size:var(--fs-body); font-weight:600; border-radius:var(--r-md); border:0; cursor:pointer; display:inline-flex; align-items:center; gap:var(--s-2); }
+.photo-btn { background:transparent; border:1px solid var(--line-default); color:var(--text-primary); user-select:none; }
+.photo-btn:hover { border-color:var(--accent); color:var(--accent); }
+.photo-btn.disabled { opacity:.5; pointer-events:none; }
 .mic { background:transparent; border:1px solid var(--line-default); color:var(--text-primary); }
 .mic:hover { border-color:var(--accent); color:var(--accent); }
 .mic.listening { background:var(--danger); color:var(--text-on-accent); border-color:transparent; animation:pulse 1.4s ease-in-out infinite; }
