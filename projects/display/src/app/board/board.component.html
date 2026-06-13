@@ -51,17 +51,6 @@
             <span class="status muted">Not supported</span>
           }
         </div>
-        @if (voice.voices().length > 0) {
-          <div class="row">
-            <label>Voice</label>
-            <select [value]="voice.selectedVoiceName() ?? ''" (change)="pickVoice($event)">
-              <option value="">Default</option>
-              @for (v of voice.voices(); track v.name) {
-                <option [value]="v.name">{{ v.name }}</option>
-              }
-            </select>
-          </div>
-        }
       </div>
     }
   </header>

@@ -114,7 +114,7 @@ High-level snapshot (2026-05-24):
 - **No briefings yet** — display app shows raw calendar/lists; the briefing surface described in FEATURES.md §4.5 is unbuilt.
 - **No routines/profiles/facts schema yet** — Phase 1 migration not landed.
 - **No release-notes infrastructure** — pop-up, page, and tables all pending.
-- **TTS is browser-native today** — sounds robotic; replacement with Google Chirp 3 HD is queued (FEATURES.md §5.4).
+- **TTS: display now uses Chirp 3 HD with browser-synth fallback.** `VoiceService.speak()` calls the `TtsAdapter` (Chirp 3 HD via the `tts` edge function) when a voice id is set, falling back to the robotic browser synth on any failure. **Owner action to actually hear Chirp:** set `GOOGLE_CLOUD_API_KEY` on the `tts` function + `npx supabase functions deploy tts`. Portal confirmations still use the browser synth (no voice id wired there yet).
 - **No tests** — initial scaffold did not include test coverage. Add as features land.
 
 ---
@@ -123,6 +123,7 @@ High-level snapshot (2026-05-24):
 
 | Date | Summary | Ref |
 |---|---|---|
+| 2026-06-13 | Display voice polish (Approach A): `VoiceService.speak()` routes through the Chirp 3 HD `TtsAdapter` with automatic browser-synth fallback; barge-in via `cancelSpeech()` on wake/push-to-talk; silence window 1.8s→1.2s. `TTS_ADAPTER` provided in display `app.config`; board sets the Chirp voice from `family.voiceSettings()`. Release 0.12.0. | (this commit) |
 | 2026-06-07 | Brain dump v2: photo capture, inventory_restock + meal_cooked types, richer Q&A snapshot, shared ask() on the display | (this commit) |
 | 2026-06-07 | /meals page, weekly meal+waste recap in briefings, grocery→inventory autoroute on check | |
 | 2026-06-06 | Voice intents for inventory/waste/meals on display + cook/discard UI in recipe lightbox | |

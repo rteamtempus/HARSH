@@ -11,6 +11,7 @@ import {
   EventRow,
   EventService,
   FamilyService,
+  GOOGLE_DEFAULT_VOICE,
   HouseholdFactsService,
   InventoryService,
   ListItemRow,
@@ -141,10 +142,6 @@ export class BoardComponent implements OnInit, OnDestroy {
     });
   }
 
-  pickVoice(ev: Event): void {
-    this.voice.setVoice((ev.target as HTMLSelectElement).value || null);
-  }
-
   private fsListener = () => this.fullscreen.set(!!document.fullscreenElement);
 
   async ngOnInit(): Promise<void> {
@@ -159,6 +156,10 @@ export class BoardComponent implements OnInit, OnDestroy {
     try {
       const fam = this.family.family() ?? (await this.family.loadCurrent());
       if (!fam) { await this.router.navigateByUrl('/sign-in'); return; }
+      // Speak replies in the family's chosen Chirp 3 HD voice (or the warm
+      // default). VoiceService falls back to the browser synth if the cloud
+      // TTS isn't reachable yet, so this is safe before the API key is set.
+      this.voice.setTtsVoice(this.family.voiceSettings()?.voiceId ?? GOOGLE_DEFAULT_VOICE);
       const [lists, accounts] = await Promise.all([
         this.lists.loadLists(fam.id),
         this.calendars.loadAccounts(fam.id),
