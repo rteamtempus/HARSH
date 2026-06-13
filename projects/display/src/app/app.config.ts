@@ -1,5 +1,6 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideServiceWorker } from '@angular/service-worker';
 import { GoogleTtsAdapter, HARSH_SUPABASE_CONFIG, TTS_ADAPTER } from 'data-access';
 
 import { routes } from './app.routes';
@@ -9,6 +10,11 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
+    // Installable PWA so the display can live next to other home-screen apps.
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
     {
       provide: HARSH_SUPABASE_CONFIG,
       useValue: { url: environment.supabaseUrl, anonKey: environment.supabaseAnonKey },

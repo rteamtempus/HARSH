@@ -48,3 +48,20 @@ header.wake-flash { animation:headerFlash 0.9s var(--ease-out); }
 .heard { bottom:var(--s-8); background:var(--bg-raised); color:var(--text-secondary); font-style:italic; }
 .reply { bottom:var(--s-5); background:var(--accent); color:var(--text-on-accent); font-weight:600; }
 @keyframes fadeIn { from { opacity:0; transform:translate(-50%, 4px); } to { opacity:1; transform:translate(-50%, 0); } }
+
+/* Phone mode: the TV "wall" is a fixed 100dvh, two-column, no-scroll surface
+   that clips on a small screen. Here we let it grow + scroll and go single
+   column. Board layout only — shared theme primitives are untouched. */
+@media (max-width: 720px) {
+  :host { height:auto; min-height:100dvh; }
+  main { height:auto; min-height:100dvh; overflow-y:auto; padding:var(--s-3); gap:var(--s-3); }
+  header { flex-wrap:wrap; gap:var(--s-2); }
+  .harsh { font-size:1.75rem; }
+  .clock { font-size:1rem; }
+  .cols { grid-template-columns:1fr; gap:var(--s-3); }
+  .cal, .lists-side, .list-items { min-height:0; overflow:visible; }
+  .list-item .text { white-space:normal; }
+  .menu { position:fixed; left:var(--s-3); right:var(--s-3); top:var(--s-3); min-width:0; max-height:calc(100dvh - var(--s-6)); overflow-y:auto; }
+  .menu select { max-width:none; }
+  .heard, .reply { width:calc(100vw - 2 * var(--s-4)); max-width:32rem; text-align:center; box-sizing:border-box; }
+}
