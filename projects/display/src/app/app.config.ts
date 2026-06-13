@@ -1,4 +1,4 @@
-import { ApplicationConfig, ErrorHandler, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 import {
@@ -11,13 +11,10 @@ import {
 
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
-import { VisibleErrorHandler } from './visible-error-handler';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    // TEMPORARY: surface uncaught errors on screen for phone/TV debugging.
-    { provide: ErrorHandler, useClass: VisibleErrorHandler },
     provideRouter(routes),
     // Installable PWA so the display can live next to other home-screen apps.
     provideServiceWorker('ngsw-worker.js', {
