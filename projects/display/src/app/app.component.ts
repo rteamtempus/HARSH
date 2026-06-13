@@ -1,9 +1,10 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { UpdateNotifierComponent } from './update-notifier/update-notifier.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, UpdateNotifierComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })

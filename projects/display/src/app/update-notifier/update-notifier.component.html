@@ -1,0 +1,7 @@
+@if (available()) {
+  <div class="banner" role="status" aria-live="polite">
+    <span class="msg">A new version is ready.</span>
+    <button class="reload" (click)="reload()">Reload</button>
+    <button class="dismiss" (click)="available.set(false)" aria-label="Dismiss">×</button>
+  </div>
+}
