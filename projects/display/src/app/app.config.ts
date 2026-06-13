@@ -1,7 +1,13 @@
 import { ApplicationConfig, ErrorHandler, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
-import { GoogleTtsAdapter, HARSH_SUPABASE_CONFIG, TTS_ADAPTER } from 'data-access';
+import {
+  GeminiLlmAdapter,
+  GoogleTtsAdapter,
+  HARSH_SUPABASE_CONFIG,
+  LLM_ADAPTER,
+  TTS_ADAPTER,
+} from 'data-access';
 
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
@@ -26,5 +32,8 @@ export const appConfig: ApplicationConfig = {
     // the robotic browser synth. Falls back to the native synth automatically
     // until GOOGLE_CLOUD_API_KEY is set on the `tts` edge function.
     { provide: TTS_ADAPTER, useClass: GoogleTtsAdapter },
+    // LLM adapter — required by BrainDumpService, which the board injects for
+    // the shared voice Q&A. Without this the board fails to construct (NG0201).
+    { provide: LLM_ADAPTER, useClass: GeminiLlmAdapter },
   ],
 };
