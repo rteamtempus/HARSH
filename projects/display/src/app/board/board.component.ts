@@ -219,6 +219,9 @@ export class BoardComponent implements OnInit, OnDestroy {
 
   enableVoice(): void {
     if (!this.voice.supported()) return;
+    // This runs from the user's tap — a genuine gesture — so unlock audio output
+    // now, while we're allowed to, for later voice-triggered speech (TTS).
+    this.voice.unlockAudio();
     this.stopWake = this.voice.startWakeWord((command) => void this.handleCommand(command));
   }
 

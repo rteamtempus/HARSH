@@ -79,6 +79,9 @@ export class VoiceService {
   readonly lastTtsInfo = signal('');
   /** The cloud-audio element currently playing, tracked so barge-in can stop it. */
   private currentAudio: HTMLAudioElement | null = null;
+  /** Web Audio source for cloud TTS playback (more reliable on a hands-free
+   *  kiosk than HTMLAudioElement.play(), which the autoplay policy blocks). */
+  private currentSource: AudioBufferSourceNode | null = null;
   /** Bumped on every speak()/cancelSpeech() so a synthesis that resolves after a
    *  barge-in can detect it's stale and not play over the new turn. */
   private speakSeq = 0;
@@ -376,18 +379,8 @@ export class VoiceService {
         // If a barge-in (or another reply) happened while we awaited synthesis,
         // this audio is stale — drop it rather than play over the new turn.
         if (seq !== this.speakSeq) return;
-        const blob = new Blob([res.audio], { type: res.mimeType });
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        this.currentAudio = audio;
-        const done = () => {
-          URL.revokeObjectURL(url);
-          if (this.currentAudio === audio) this.currentAudio = null;
-        };
-        audio.onended = done;
-        audio.onerror = done;
-        await audio.play();
-        this.lastTtsInfo.set('chirp: playing');
+        await this.playViaWebAudio(res.audio, seq);
+        this.lastTtsInfo.set('chirp: playing (webaudio)');
         return;
       } catch (e: any) {
         this.lastTtsInfo.set(`chirp FAILED (${e?.message ?? e}) → browser`);
@@ -396,6 +389,39 @@ export class VoiceService {
       }
     }
     this.speakBrowser(text);
+  }
+
+  /**
+   * Play encoded audio (Chirp returns MP3) through the shared AudioContext.
+   * Once that context is unlocked by a user gesture (the "Enable Hey HARSH"
+   * tap → unlockAudio()), Web Audio plays without the per-utterance gesture the
+   * autoplay policy demands of HTMLAudioElement.play() — the right primitive for
+   * a hands-free display.
+   */
+  private async playViaWebAudio(audio: ArrayBuffer, seq: number): Promise<void> {
+    this.unlockAudio();
+    const ctx = this.audioCtx;
+    if (!ctx) throw new Error('no AudioContext');
+    if (ctx.state === 'suspended') await ctx.resume();
+    // decodeAudioData detaches its input buffer, so hand it a copy.
+    const decoded = await ctx.decodeAudioData(audio.slice(0));
+    if (seq !== this.speakSeq) return; // barge-in landed during decode
+    const src = ctx.createBufferSource();
+    src.buffer = decoded;
+    src.connect(ctx.destination);
+    src.onended = () => { if (this.currentSource === src) this.currentSource = null; };
+    this.currentSource = src;
+    src.start();
+  }
+
+  /** Create + resume the AudioContext. Call from a user gesture (button tap) so
+   *  the browser actually unlocks audio output for later voice-triggered speech. */
+  unlockAudio(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!this.audioCtx) this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (this.audioCtx.state === 'suspended') void this.audioCtx.resume();
+    } catch { /* ignore */ }
   }
 
   private speakBrowser(text: string): void {
@@ -423,6 +449,10 @@ export class VoiceService {
    */
   cancelSpeech(): void {
     this.speakSeq++;
+    if (this.currentSource) {
+      try { this.currentSource.stop(); } catch { /* noop */ }
+      this.currentSource = null;
+    }
     if (this.currentAudio) {
       try { this.currentAudio.pause(); } catch { /* noop */ }
       this.currentAudio = null;
