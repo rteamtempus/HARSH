@@ -83,6 +83,8 @@ export class BoardComponent implements OnInit, OnDestroy {
   readonly wakeFlash = signal(false);
   readonly menuOpen = signal(false);
   readonly fullscreen = signal(!!document.fullscreenElement);
+  // TEMPORARY voice-pipeline debug log (newest first). Remove after voice debug.
+  readonly debug = signal<string[]>([]);
   readonly familyDisplayName = computed(() => acronymize(this.family.family()?.name ?? 'HARSH'));
 
   // Bound to view inputs so they pick up account colors.
@@ -228,12 +230,20 @@ export class BoardComponent implements OnInit, OnDestroy {
     await this.lists.loadItems(id);
   }
 
+  // TEMPORARY: append a line to the on-screen voice debug panel.
+  private dbg(msg: string): void {
+    const t = new Date().toTimeString().slice(0, 8);
+    this.debug.update((lines) => [`${t} ${msg}`, ...lines].slice(0, 14));
+  }
+
   private async handleCommand(transcript: string): Promise<void> {
     const fam = this.family.family();
+    this.dbg(`submit: "${transcript}" (fam=${!!fam})`);
     if (!fam || !transcript) return;
     this.showHeard(transcript);
     try {
       const res = await this.ai.runIntent({ transcript, family_id: fam.id, surface: 'display' });
+      this.dbg(`intents=[${res.intents.map((i) => i.action).join(',')}] reply="${res.spoken_reply ?? ''}"`);
 
       // Fallback: if ai-intent couldn't classify any intent confidently, hand
       // the transcript to the shared Q&A primitive so the display can answer
@@ -241,7 +251,9 @@ export class BoardComponent implements OnInit, OnDestroy {
       const allUnknown = res.intents.length === 0
         || res.intents.every((i) => i.action === 'unknown');
       if (allUnknown) {
+        this.dbg('all unknown → ask()');
         const answered = await this.askFreeForm(transcript, fam.id);
+        this.dbg(`ask answered=${answered}`);
         if (answered) return;
       }
 
@@ -275,9 +287,11 @@ export class BoardComponent implements OnInit, OnDestroy {
         }
       }
       const reply = overrideReply ?? res.spoken_reply;
+      this.dbg(`reply="${reply}"`);
       this.showReply(reply);
       this.voice.speak(reply);
     } catch (e: any) {
+      this.dbg(`ERROR: ${e?.message ?? e}`);
       this.showReply(`Sorry — ${e?.message ?? 'something went wrong'}`);
     }
   }
@@ -331,7 +345,8 @@ export class BoardComponent implements OnInit, OnDestroy {
       this.showReply(reply);
       this.voice.speak(reply);
       return true;
-    } catch (e) {
+    } catch (e: any) {
+      this.dbg(`ask ERROR: ${e?.message ?? e}`);
       console.warn('ask fallback failed', e);
       return false;
     }

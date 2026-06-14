@@ -38,6 +38,13 @@ const VOICE_STORAGE_KEY = 'harsh.voiceName';
  * with ADHD speakers — tune here if it feels too eager or too laggy.
  */
 const SILENCE_MS = 1200;
+/**
+ * Once the recognizer emits a FINAL result (its "utterance ended" signal), wait
+ * only this long before submitting. After a final we ignore further interim
+ * results, so background noise can't hold the floor open indefinitely — the
+ * single biggest cause of "it keeps listening but never acts" in a noisy room.
+ */
+const ENDPOINT_AFTER_FINAL_MS = 900;
 /** Hard cap on a single command to avoid the user holding the floor forever. */
 const MAX_COMMAND_MS = 12000;
 
@@ -83,6 +90,10 @@ export class VoiceService {
   // Wake / command state
   private mode: WakeMode = 'idle';
   private commandText = '';
+  /** True once the recognizer has finalized at least one segment of this command.
+   *  After that we endpoint on finals only and stop letting interim noise re-arm
+   *  the timer. */
+  private sawFinal = false;
   private silenceHandle: ReturnType<typeof setTimeout> | null = null;
   private maxHandle: ReturnType<typeof setTimeout> | null = null;
   private lastFinalLen = 0;
@@ -227,6 +238,7 @@ export class VoiceService {
         const match = combined.match(WAKE_RE);
         if (match) {
           this.mode = 'command';
+          this.sawFinal = false;
           // Barge-in: silence any reply still playing so we don't talk over the user.
           this.cancelSpeech();
           this.capturingCommand.set(true);
@@ -242,10 +254,20 @@ export class VoiceService {
         // string and treat the remainder as the running command.
         const match = combined.match(WAKE_RE);
         const rest = (match?.[1] ?? combined).trim();
-        // If the engine produced any new text, treat that as activity.
-        if (rest.length !== this.commandText.length || anyFinal) {
+        if (rest.length !== this.commandText.length) {
           this.commandText = rest;
           this.transcript.set(rest);
+        }
+        if (anyFinal) {
+          // The recognizer marked an utterance boundary — a strong "the speaker
+          // finished" signal. Endpoint quickly. Subsequent finals re-arm (the
+          // user kept talking); interim-only noise no longer does (see below).
+          this.sawFinal = true;
+          this.armSilence(r, ENDPOINT_AFTER_FINAL_MS);
+        } else if (!this.sawFinal) {
+          // Before any final, interim activity means the speaker is mid-command,
+          // so keep the window open. Once we've seen a final we deliberately stop
+          // re-arming on interim, so background noise can't hold the floor open.
           this.armSilence(r);
         }
       }
@@ -277,7 +299,7 @@ export class VoiceService {
     try { r.start(); } catch { /* already started */ }
   }
 
-  private armSilence(r: SpeechRecognitionLike): void {
+  private armSilence(r: SpeechRecognitionLike, delay: number = SILENCE_MS): void {
     if (this.silenceHandle) clearTimeout(this.silenceHandle);
     this.silenceHandle = setTimeout(() => {
       // Submit what we've accumulated and let onend handle reset/restart.
@@ -292,7 +314,7 @@ export class VoiceService {
         // Too short to be a command — go back to idle without firing.
         this.resetCommandState();
       }
-    }, SILENCE_MS);
+    }, delay);
   }
 
   private armMaxDuration(r: SpeechRecognitionLike): void {

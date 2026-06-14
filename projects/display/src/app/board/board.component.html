@@ -94,4 +94,15 @@
 
   @if (heard(); as h) { <p class="heard">“{{ h }}”</p> }
   @if (reply(); as r) { <p class="reply">{{ r }}</p> }
+
+  <!-- TEMPORARY voice debug panel. Remove after diagnosing. -->
+  <div class="vdebug">
+    <div class="vdebug-state">
+      wake={{ voice.wakeArmed() }} · listening={{ voice.capturingCommand() }} · supported={{ voice.supported() }}
+    </div>
+    <div class="vdebug-live">live: {{ voice.transcript() || '—' }}</div>
+    @for (line of debug(); track $index) {
+      <div class="vdebug-line">{{ line }}</div>
+    }
+  </div>
 </main>
