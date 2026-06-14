@@ -85,6 +85,10 @@
             @if (m.status === 'committed') {
               <a class="ghost small" [routerLink]="['/meeting', m.id]">View</a>
             }
+            <!-- Only present when the transcript was saved (debug workflow): re-run extraction. -->
+            @if (m.transcript && (m.status === 'ready_for_review' || m.status === 'committed' || m.status === 'failed')) {
+              <button class="ghost small" (click)="extract(m.id)">Re-extract</button>
+            }
             <button class="danger small" (click)="remove(m.id)">Delete</button>
           </div>
         </li>
