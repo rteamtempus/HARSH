@@ -75,6 +75,8 @@ export class VoiceService {
   private readonly tts = inject(TTS_ADAPTER, { optional: true });
   /** Provider voice id the host app supplies (e.g. a Chirp 3 HD id from family settings). */
   readonly ttsVoiceId = signal<string | null>(null);
+  /** TEMPORARY: last speak() outcome, surfaced in the display debug panel. */
+  readonly lastTtsInfo = signal('');
   /** The cloud-audio element currently playing, tracked so barge-in can stop it. */
   private currentAudio: HTMLAudioElement | null = null;
   /** Bumped on every speak()/cancelSpeech() so a synthesis that resolves after a
@@ -367,6 +369,7 @@ export class VoiceService {
     this.cancelSpeech();
     const seq = ++this.speakSeq;
     const voiceId = this.ttsVoiceId();
+    this.lastTtsInfo.set(`try tts=${!!this.tts} voiceId=${voiceId ?? 'none'}`);
     if (this.tts && voiceId) {
       try {
         const res = await this.tts.synthesize(text, { voiceId });
@@ -384,8 +387,10 @@ export class VoiceService {
         audio.onended = done;
         audio.onerror = done;
         await audio.play();
+        this.lastTtsInfo.set('chirp: playing');
         return;
-      } catch (e) {
+      } catch (e: any) {
+        this.lastTtsInfo.set(`chirp FAILED (${e?.message ?? e}) → browser`);
         console.warn('Chirp TTS failed; falling back to browser synth', e);
         // fall through to the native synth below
       }
@@ -394,13 +399,21 @@ export class VoiceService {
   }
 
   private speakBrowser(text: string): void {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text) {
+      this.lastTtsInfo.update((s) => `${s} | no speechSynthesis`);
+      return;
+    }
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1;
     u.pitch = 1;
     const v = this.selectedVoice();
     if (v) u.voice = v;
-    window.speechSynthesis.speak(u);
+    try {
+      window.speechSynthesis.speak(u);
+      this.lastTtsInfo.update((s) => `${s} | browser.speak (voices=${this.voices().length})`);
+    } catch (e: any) {
+      this.lastTtsInfo.update((s) => `${s} | browser FAILED ${e?.message ?? e}`);
+    }
   }
 
   /**

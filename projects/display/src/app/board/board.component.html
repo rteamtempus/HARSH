@@ -98,9 +98,10 @@
   <!-- TEMPORARY voice debug panel. Remove after diagnosing. -->
   <div class="vdebug">
     <div class="vdebug-state">
-      wake={{ voice.wakeArmed() }} · listening={{ voice.capturingCommand() }} · supported={{ voice.supported() }}
+      armed={{ voice.wakeArmed() }} · wakes={{ voice.wakeCount() }} · listening={{ voice.capturingCommand() }} · supported={{ voice.supported() }}
     </div>
     <div class="vdebug-live">live: {{ voice.transcript() || '—' }}</div>
+    <div class="vdebug-live">tts: {{ voice.lastTtsInfo() || '—' }}</div>
     @for (line of debug(); track $index) {
       <div class="vdebug-line">{{ line }}</div>
     }
