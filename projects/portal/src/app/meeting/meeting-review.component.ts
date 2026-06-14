@@ -6,9 +6,11 @@ import {
   BrainDumpItem,
   BrainDumpService,
   FamilyService,
+  InventoryService,
   MeetingRow,
   MeetingService,
   MeetingStatus,
+  RecipeService,
 } from 'data-access';
 
 // Meeting review — see FEATURES.md §4.6 Stage 4.
@@ -53,6 +55,8 @@ export class MeetingReviewComponent implements OnInit, OnDestroy {
   private readonly service = inject(MeetingService);
   private readonly brainDump = inject(BrainDumpService);
   private readonly family = inject(FamilyService);
+  private readonly inventory = inject(InventoryService);
+  private readonly recipes = inject(RecipeService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -98,6 +102,13 @@ export class MeetingReviewComponent implements OnInit, OnDestroy {
     if (!id) { await this.router.navigateByUrl('/meeting'); return; }
     const fam = this.family.family() ?? (await this.family.loadCurrent());
     if (!fam) { await this.router.navigateByUrl('/setup'); return; }
+
+    // Load inventory + recipes so the executor can resolve inventory_restock /
+    // waste_event (by item) and meal_cooked (by recipe) at commit time. Without
+    // these loaded, restocks silently no-op and meals/waste fall back to free
+    // text. Best-effort — don't block the review if they fail.
+    void this.inventory.load(fam.id).catch(() => {});
+    void this.recipes.load(fam.id).catch(() => {});
 
     try {
       // Subscribe to the family's meetings so realtime keeps this view fresh

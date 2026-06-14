@@ -16,10 +16,17 @@
       <button class="record-btn" (click)="start()" [disabled]="busy()">
         <span class="dot"></span> Record meeting
       </button>
-      <p class="hint">Place your phone between speakers. Tap end when you're done.</p>
+      <p class="hint">Place your phone between speakers. Keep this screen open. Tap end when you're done.</p>
+      <label class="save-transcript">
+        <input type="checkbox" [checked]="saveTranscript()" (change)="toggleSaveTranscript()" />
+        <span>Save the transcript (for debugging) — off by default; only proposals + summary are kept.</span>
+      </label>
     } @else {
       <div class="recording">
         <div class="elapsed">{{ elapsedLabel() }}</div>
+        @if (nearCap()) {
+          <p class="cap-warn">⚠ Approaching the ~80 min limit — wrap up soon so transcription doesn't fail.</p>
+        }
         <div class="indicators">
           @if (paused()) {
             <span class="status paused">⏸ Paused</span>

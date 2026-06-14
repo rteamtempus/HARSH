@@ -869,6 +869,7 @@ export type Database = {
           open_questions: string[]
           proposals: Json
           recorded_at: string
+          save_transcript: boolean
           status: Database["public"]["Enums"]["meeting_status"]
           transcript: string | null
           transcript_segments: Json | null
@@ -887,6 +888,7 @@ export type Database = {
           open_questions?: string[]
           proposals?: Json
           recorded_at?: string
+          save_transcript?: boolean
           status?: Database["public"]["Enums"]["meeting_status"]
           transcript?: string | null
           transcript_segments?: Json | null
@@ -905,6 +907,7 @@ export type Database = {
           open_questions?: string[]
           proposals?: Json
           recorded_at?: string
+          save_transcript?: boolean
           status?: Database["public"]["Enums"]["meeting_status"]
           transcript?: string | null
           transcript_segments?: Json | null

@@ -67,6 +67,7 @@ export class MeetingService {
     durationSeconds: number;
     markers: MeetingMarker[];
     memberId?: string | null;
+    saveTranscript?: boolean;
   }): Promise<string> {
     // Pre-allocate the meeting row so we have an id for the storage path.
     const inserted = await this.supabase
@@ -77,6 +78,7 @@ export class MeetingService {
         markers: input.markers as any,
         status: 'uploaded',
         created_by_member_id: input.memberId ?? null,
+        save_transcript: input.saveTranscript ?? false,
       })
       .select('*')
       .single();

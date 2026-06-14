@@ -47,6 +47,15 @@ export class MeetingComponent implements OnInit, OnDestroy {
   readonly recordError = signal<string | null>(null);
   readonly markers = signal<MeetingMarker[]>([]);
   readonly elapsedSeconds = signal(0);
+  /** Opt-in transcript retention (default off). Persisted to localStorage. */
+  readonly saveTranscript = signal<boolean>(readSaveTranscriptPref());
+
+  /**
+   * Soft cap: transcription sends audio inline to Gemini (~19MB ≈ ~80 min at
+   * our 32 kbps mono encoding). Warn as we approach it so a long meeting isn't
+   * silently truncated/failed.
+   */
+  readonly SOFT_CAP_SECONDS = 75 * 60;
 
   private mediaRecorder: MediaRecorder | null = null;
   private chunks: Blob[] = [];
@@ -55,6 +64,18 @@ export class MeetingComponent implements OnInit, OnDestroy {
   private pausedAccumMs = 0;
   private pausedAtMs = 0;
   private stream: MediaStream | null = null;
+  // Keep the phone awake + warn on accidental navigation while recording.
+  private wakeLock: { release: () => Promise<void> } | null = null;
+  private beforeUnload: ((e: BeforeUnloadEvent) => void) | null = null;
+  private visibilityListener: (() => void) | null = null;
+
+  nearCap(): boolean { return this.elapsedSeconds() >= this.SOFT_CAP_SECONDS; }
+
+  toggleSaveTranscript(): void {
+    const next = !this.saveTranscript();
+    this.saveTranscript.set(next);
+    try { localStorage.setItem(SAVE_TRANSCRIPT_KEY, next ? '1' : '0'); } catch { /* ignore */ }
+  }
 
   async ngOnInit() {
     try {
@@ -78,9 +99,21 @@ export class MeetingComponent implements OnInit, OnDestroy {
       return;
     }
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        // Mono + DSP: smaller files (more minutes under the transcription cap)
+        // and cleaner audio for a phone sitting between two speakers.
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
+      });
       const mime = pickMime();
-      this.mediaRecorder = new MediaRecorder(this.stream, mime ? { mimeType: mime } : undefined);
+      this.mediaRecorder = new MediaRecorder(this.stream, {
+        ...(mime ? { mimeType: mime } : {}),
+        audioBitsPerSecond: 32000, // ~32 kbps: clear speech, ~80 min fits the 19MB inline cap
+      });
       this.chunks = [];
       this.markers.set([]);
       this.mediaRecorder.addEventListener('dataavailable', (e) => {
@@ -92,10 +125,34 @@ export class MeetingComponent implements OnInit, OnDestroy {
       this.elapsedTimer = setInterval(() => this.tickElapsed(), 250);
       this.recording.set(true);
       this.paused.set(false);
+      // Phone gotchas: keep the screen awake (a locked screen pauses the mic),
+      // re-acquire the lock when returning to the tab, and warn before an
+      // accidental navigation/close throws the recording away.
+      void this.acquireWakeLock();
+      this.visibilityListener = () => {
+        if (document.visibilityState === 'visible' && this.recording()) void this.acquireWakeLock();
+      };
+      document.addEventListener('visibilitychange', this.visibilityListener);
+      this.beforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+      window.addEventListener('beforeunload', this.beforeUnload);
     } catch (e: any) {
       this.recordError.set(e?.message ?? 'Microphone permission denied');
       this.cleanup();
     }
+  }
+
+  private async acquireWakeLock(): Promise<void> {
+    try {
+      const nav = navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<any> } };
+      if (nav.wakeLock?.request && !this.wakeLock) {
+        this.wakeLock = await nav.wakeLock.request('screen');
+      }
+    } catch { /* non-fatal: low battery / unsupported */ }
+  }
+
+  private async releaseWakeLock(): Promise<void> {
+    try { await this.wakeLock?.release(); } catch { /* ignore */ }
+    this.wakeLock = null;
   }
 
   pause() {
@@ -141,6 +198,7 @@ export class MeetingComponent implements OnInit, OnDestroy {
         durationSeconds: Math.round(durationSeconds),
         markers: this.markers(),
         memberId: this.family.me()?.id ?? null,
+        saveTranscript: this.saveTranscript(),
       });
     } catch (e: any) {
       this.recordError.set(e?.message ?? 'Could not save meeting');
@@ -202,6 +260,9 @@ export class MeetingComponent implements OnInit, OnDestroy {
       this.stream.getTracks().forEach((t) => t.stop());
       this.stream = null;
     }
+    void this.releaseWakeLock();
+    if (this.beforeUnload) { window.removeEventListener('beforeunload', this.beforeUnload); this.beforeUnload = null; }
+    if (this.visibilityListener) { document.removeEventListener('visibilitychange', this.visibilityListener); this.visibilityListener = null; }
     this.chunks = [];
     this.recording.set(false);
     this.paused.set(false);
@@ -210,6 +271,11 @@ export class MeetingComponent implements OnInit, OnDestroy {
     this.pausedAccumMs = 0;
     this.pausedAtMs = 0;
   }
+}
+
+const SAVE_TRANSCRIPT_KEY = 'harsh.meeting.saveTranscript';
+function readSaveTranscriptPref(): boolean {
+  try { return localStorage.getItem(SAVE_TRANSCRIPT_KEY) === '1'; } catch { return false; }
 }
 
 /**

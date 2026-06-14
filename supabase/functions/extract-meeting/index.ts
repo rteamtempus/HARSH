@@ -25,15 +25,24 @@ const corsHeaders = {
 // it back into typed fields (see normalizeWireItem in brain-dump.service.ts) —
 // we store the normalized shape here so meeting-review can hand proposals
 // straight to BrainDumpService.execute().
+// Mirrors the wire ITEM_SCHEMA in projects/data-access/src/lib/brain-dump.service.ts.
+// Keep these in sync — the meeting must capture everything the brain dump can.
 const ITEM_SCHEMA = {
   type: 'object',
   properties: {
-    type: { type: 'string', enum: ['list_item', 'event', 'routine', 'household_fact', 'context_note'] },
+    type: {
+      type: 'string',
+      enum: [
+        'list_item', 'event', 'routine', 'household_fact', 'context_note',
+        'waste_event', 'inventory_restock', 'meal_cooked',
+      ],
+    },
     label: {
       type: 'string',
       description:
         'The primary text. ALWAYS fill this. list_item: item text. event: title. routine: routine name. ' +
-        'household_fact: the fact key/name. context_note: the note content.',
+        'household_fact: the fact key/name. context_note: the note content. ' +
+        'waste_event: the thing wasted. inventory_restock: the item name. meal_cooked: the recipe / meal name.',
     },
     value: { type: 'string', description: 'household_fact only: the fact value.' },
     list_name: { type: 'string', description: 'list_item only.' },
@@ -53,6 +62,17 @@ const ITEM_SCHEMA = {
     },
     expires_at: { type: 'string' },
     suppress_topics: { type: 'array', items: { type: 'string' } },
+    reason: {
+      type: 'string',
+      enum: ['spoiled', 'disliked', 'leftover_not_eaten', 'accident', 'not_worth_it', 'other'],
+      description: 'waste_event only',
+    },
+    percentage_wasted: { type: 'integer', description: 'waste_event only: 0-100; 100 = whole item, 50 = half used' },
+    quantity_text: { type: 'string', description: 'waste_event only: "half a loaf", "two slices", etc.' },
+    estimated_value_cents: { type: 'integer', description: 'waste_event only: when known. Otherwise leave blank.' },
+    count: { type: 'integer', description: 'inventory_restock only: explicit count when given ("3 cans of beans").' },
+    servings_made: { type: 'integer', description: 'meal_cooked only: number of servings prepared.' },
+    estimated_total_cost_cents: { type: 'integer', description: 'meal_cooked only: when a cost is stated.' },
     reasoning: { type: 'string', description: 'Short quote from the transcript that prompted this item.' },
   },
   required: ['type', 'label'],
@@ -79,6 +99,12 @@ function normalizeWireItem(raw: any): any | null {
     case 'context_note':
       if (!raw.expires_at) return null;
       return { type: 'context_note', content: label, note_type: raw.note_type ?? 'situational', expires_at: raw.expires_at, suppress_topics: raw.suppress_topics, reasoning };
+    case 'waste_event':
+      return { type: 'waste_event', name: label, reason: raw.reason ?? 'other', percentage_wasted: raw.percentage_wasted, quantity_text: raw.quantity_text, estimated_value_cents: raw.estimated_value_cents, reasoning };
+    case 'inventory_restock':
+      return { type: 'inventory_restock', name: label, count: raw.count, reasoning };
+    case 'meal_cooked':
+      return { type: 'meal_cooked', recipe_name: label, servings_made: raw.servings_made, estimated_total_cost_cents: raw.estimated_total_cost_cents, notes: raw.notes, reasoning };
     default:
       return null;
   }
@@ -104,6 +130,9 @@ const SYSTEM_PROMPT = `You are processing the transcript of a family planning me
   - routine: a recurring obligation (interval_days OR cadence_rrule).
   - household_fact: durable facts about the household.
   - context_note: time-bounded situational context (expires_at within 30 days).
+  - waste_event: ONLY when someone says something was thrown out / discarded / spoiled / expired / not eaten. label = the thing wasted ("moldy bread", "the curry leftovers"). reason = closest of spoiled/disliked/leftover_not_eaten/accident/not_worth_it/other. percentage_wasted 0-100 (default 100; lower for "half-used"/"almost empty"). Do NOT confuse with list_item — "we need bread" is a list_item, "we threw out the bread" is a waste_event.
+  - inventory_restock: when someone says they bought / restocked / replaced something the household tracks ("we got more milk", "I picked up bread"). label = the item name. count when explicit.
+  - meal_cooked: when someone says they cooked or served a meal ("I made lasagna", "we had spaghetti"). label = the recipe / meal name. servings_made when stated.
 
 Critical rules:
 - EVERY proposal MUST have a non-empty "label" (the primary text). For household_fact also set "value".
@@ -188,13 +217,22 @@ Deno.serve(async (req: Request) => {
       .map(normalizeWireItem)
       .filter((p: any) => p !== null);
 
-    await admin.from('meeting_notes').update({
+    const update: Record<string, unknown> = {
       status: 'ready_for_review',
       proposals: normalizedProposals,
       open_questions: parsed.open_questions,
       ai_summary: parsed.summary,
       error_message: null,
-    }).eq('id', body.meeting_id);
+    };
+    // Transcript retention is opt-in (meeting_notes.save_transcript, default
+    // false). When off, drop the raw transcript + diarized segments now that the
+    // proposals + summary are extracted — only the derived artifacts remain.
+    // When on, keep the transcript so the owner can re-run extraction / debug.
+    if (!meeting.save_transcript) {
+      update.transcript = null;
+      update.transcript_segments = null;
+    }
+    await admin.from('meeting_notes').update(update).eq('id', body.meeting_id);
 
     // Delete the audio now that we've extracted everything — FEATURES.md §4.6
     // privacy posture says transcript kept, audio deleted.
