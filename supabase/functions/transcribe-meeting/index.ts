@@ -100,7 +100,9 @@ Deno.serve(async (req: Request) => {
         systemInstruction: { role: 'system', parts: [{ text: SYSTEM_PROMPT }] },
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 8192,
+          // A full meeting transcript + segments is large; 8192 truncates it
+          // mid-JSON (→ unparseable). gemini-2.5-flash allows up to 65536.
+          maxOutputTokens: 65536,
           responseMimeType: 'application/json',
           responseSchema: TRANSCRIPT_SCHEMA,
         },
@@ -112,10 +114,14 @@ Deno.serve(async (req: Request) => {
       throw new Error(`gemini_${geminiResp.status}:${errText.slice(0, 300)}`);
     }
     const data = await geminiResp.json();
+    const finish = data?.candidates?.[0]?.finishReason;
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    if (finish && finish !== 'STOP') {
+      throw new Error(`transcription_incomplete:finishReason=${finish} (meeting may be too long)`);
+    }
     let parsed: { transcript: string; segments: any[] };
-    try { parsed = JSON.parse(rawText); }
-    catch { throw new Error('invalid_json_from_model'); }
+    try { parsed = JSON.parse(stripCodeFences(rawText)); }
+    catch { throw new Error(`invalid_json_from_model:${rawText.length}chars:${rawText.slice(0, 120)}`); }
 
     await admin.from('meeting_notes').update({
       status: 'transcribed',
@@ -132,6 +138,16 @@ Deno.serve(async (req: Request) => {
     return json({ error: msg }, 500);
   }
 });
+
+// Gemini occasionally wraps JSON in ```json … ``` fences despite
+// responseMimeType=application/json. Strip them before parsing.
+function stripCodeFences(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith('```')) {
+    return trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  }
+  return trimmed;
+}
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   // Chunked to avoid call-stack overflow on large buffers.

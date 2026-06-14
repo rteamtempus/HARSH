@@ -73,8 +73,10 @@
             }
           </div>
           <div class="row-actions">
-            @if (m.status === 'uploaded') {
-              <button class="primary small" (click)="transcribe(m.id)">Transcribe</button>
+            @if (m.status === 'uploaded' || (m.status === 'failed' && m.audio_path && !m.transcript)) {
+              <button class="primary small" (click)="transcribe(m.id)">
+                @if (m.status === 'failed') { Retry transcription } @else { Transcribe }
+              </button>
             }
             @if (m.status === 'transcribed') {
               <button class="primary small" (click)="extract(m.id)">Extract proposals</button>

@@ -196,7 +196,9 @@ Deno.serve(async (req: Request) => {
         systemInstruction: { role: 'system', parts: [{ text: SYSTEM_PROMPT }] },
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 8192,
+          // Summary + many proposals + open questions can exceed 8192 and
+          // truncate mid-JSON. Give plenty of headroom.
+          maxOutputTokens: 32768,
           responseMimeType: 'application/json',
           responseSchema: RESPONSE_SCHEMA,
         },
@@ -208,10 +210,14 @@ Deno.serve(async (req: Request) => {
       throw new Error(`gemini_${geminiResp.status}:${errText.slice(0, 300)}`);
     }
     const data = await geminiResp.json();
+    const finish = data?.candidates?.[0]?.finishReason;
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    if (finish && finish !== 'STOP') {
+      throw new Error(`extraction_incomplete:finishReason=${finish}`);
+    }
     let parsed: { summary: string; proposals: any[]; open_questions: string[] };
-    try { parsed = JSON.parse(rawText); }
-    catch { throw new Error('invalid_json_from_model'); }
+    try { parsed = JSON.parse(stripCodeFences(rawText)); }
+    catch { throw new Error(`invalid_json_from_model:${rawText.length}chars:${rawText.slice(0, 120)}`); }
 
     const normalizedProposals = (parsed.proposals ?? [])
       .map(normalizeWireItem)
@@ -253,6 +259,16 @@ Deno.serve(async (req: Request) => {
     return json({ error: msg }, 500);
   }
 });
+
+// Gemini occasionally wraps JSON in ```json … ``` fences despite
+// responseMimeType=application/json. Strip them before parsing.
+function stripCodeFences(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith('```')) {
+    return trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  }
+  return trimmed;
+}
 
 function json(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
